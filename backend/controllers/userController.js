@@ -340,6 +340,43 @@ const getUserProfile = async(req,res)=>{
 }
 
 
+// get user by id
+const getUserById = async(req, res) =>{
+  try{
+    if(req.user.role !== 'admin'){
+      return res.status(403).json({
+        success: false,
+        message: 'You are not authorized to access this resource'
+      });
+    }
+
+    const userId = req.params.id;
+    const user = await User.findById(userId);
+
+    if(!user){
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+    user.password = undefined;
+
+    res.status(200).json({
+      success: true,
+      message: 'User fetched successfully',
+      data: {user: user}
+    });
+
+  }catch(error){
+    console.error('User fetch by ID error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'User fetch by ID failed',
+      error: error.message
+    })
+  }
+}
+
 //  get all users (admin only)
 const getAllUsers = async(req, res) =>{
   try{
@@ -461,4 +498,52 @@ const deleteUser = async(req, res) =>{
   }
 }
 
-export {registerUser, loginUser, updateProfile, updatePassword, getUserProfile, getAllUsers, deleteUser}
+
+// search users
+const searchUsers = async(req, res) =>{
+  try{
+    const {query, role, limit = 10} = req.query;
+    let searchCriteria = {};
+
+    // search by name or email
+    if(query){
+      searchCriteria.$or = [
+        {name: {$regex: query, $options: 'i'}}, // case insensitive search
+        {email: {$regex: query, $options: 'i'}}
+      ];
+    }
+
+    // filter by role
+    if(role){
+      searchCriteria.role = role;
+    }
+
+    // limit the number of results
+    const users = await User.find(searchCriteria)
+    .limit(parseInt(limit))
+    .select('-password'); // exclude password from response
+
+    res.status(200).json({
+      success: true,
+      message: 'Users found successfully',
+      data: {
+        users,
+        count: users.length,
+        query: query || '',
+        role: role || 'all'
+
+      }
+    });
+  }catch(error){
+    console.error('User search error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'User search failed',
+      error: error.message
+    });
+
+  }
+}
+
+
+export {registerUser, loginUser, updateProfile, updatePassword, getUserProfile, getAllUsers, deleteUser, searchUsers, getUserById}

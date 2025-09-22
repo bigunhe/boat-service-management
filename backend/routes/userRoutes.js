@@ -1,6 +1,6 @@
 import express from 'express';
 import authMiddleware from '../middleware/auth.js';
-import { registerUser, loginUser, updateProfile, updatePassword, getUserProfile, getAllUsers, deleteUser} from '../controllers/userController.js';
+import { registerUser, loginUser, updateProfile, updatePassword, getUserProfile, getAllUsers, deleteUser, searchUsers, getUserById } from '../controllers/userController.js';
 
 const router = express.Router();
 
@@ -10,8 +10,12 @@ const router = express.Router();
 
 router.get('/profile', authMiddleware, getUserProfile);
 
+router.get('/users/:id', authMiddleware, getUserById);
+
 router.get('/all', authMiddleware, getAllUsers);
 
+// search users
+router.get('/search', authMiddleware, searchUsers);
 
 
 // POST requests
@@ -33,8 +37,7 @@ router.post('/profile/update-password', authMiddleware, updatePassword);
 // DELETE requests
 
 
-router.delete('/delete/:id', authMiddleware, deleteUser);
-
+router.delete('/users/:id', authMiddleware, deleteUser);
 
 
 
