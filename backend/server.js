@@ -7,6 +7,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 import userRoutes from './routes/userRoutes.js';
+import boatRepairRoutes from './routes/boatRepairRoutes.js';
 
 
 
@@ -55,6 +56,9 @@ app.get('/', (req, res) => {
 
 // user routes 
 app.use('/api/users', userRoutes );
+
+// boat repair routes
+app.use('/api/boat-repairs', boatRepairRoutes);
 
 
 // Global error handling middleware

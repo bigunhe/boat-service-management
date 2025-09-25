@@ -7,7 +7,7 @@ const envConfig = {
   DB_NAME: 'boat-service-management',
   
   // Server Configuration
-  PORT: 5000,
+  PORT: 5002,
   NODE_ENV: 'development',
   FRONTEND_URL: 'http://localhost:3000',
   
@@ -30,4 +30,4 @@ const envConfig = {
   RATE_LIMIT_MAX_REQUESTS: 100
 };
 
-module.exports = envConfig;
+export default envConfig;
