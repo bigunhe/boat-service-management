@@ -11,7 +11,7 @@ const AdminDashboard = ({ firstName }) => {
       icon: <FaUserPlus />,
       description: 'Add new employee accounts with detailed information',
       color: 'bg-green-500',
-      route: '/admin/create-employee'
+      route: '/admin/create-employee?from=/dashboard'
     },
     {
       name: 'View All Users',

@@ -1,18 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { FaArrowLeft, FaArrowRight, FaUpload, FaTimes, FaCheck, FaCalendarAlt, FaCreditCard, FaSpinner, FaImage, FaVideo } from 'react-icons/fa';
+import { FaArrowLeft, FaArrowRight, FaUpload, FaTimes, FaCheck, FaCalendarAlt, FaSpinner, FaImage, FaVideo } from 'react-icons/fa';
 import toast from 'react-hot-toast';
-import { uploadToCloudinary } from '../../services/cloudinaryService';
-import { createBoatRepair } from '../../services/repairService';
+import { uploadToCloudinary } from '../../hooks/useFileUpload';
+import { createBoatRepair, getRepairById, updateRepairByCustomer } from './repairApi';
 
 const RepairService = () => {
-  const { user } = useAuth();
+  useAuth();
   const navigate = useNavigate();
+  const { id } = useParams();
+  
+  // Check if we're in edit mode
+  const isEditMode = !!id;
   
   // Step management
   const [currentStep, setCurrentStep] = useState(1);
-  const totalSteps = 4;
+  const totalSteps = isEditMode ? 3 : 4; // Edit mode skips scheduling step
   
   // Form data state
   const [formData, setFormData] = useState({
@@ -32,8 +36,6 @@ const RepairService = () => {
     photos: [],
     
     // Step 3: Scheduling
-    preferredDate: '',
-    preferredTimeSlot: '',
     calendlyEventId: '',
     calendlyEventUri: '',
     scheduledDateTime: null,
@@ -46,7 +48,9 @@ const RepairService = () => {
         city: '',
         district: '',
         postalCode: ''
-      }
+      },
+      marinaName: '',
+      dockNumber: ''
     },
     customerNotes: ''
   });
@@ -61,19 +65,119 @@ const RepairService = () => {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [cancelUpload, setCancelUpload] = useState(null);
   
+  // Edit mode state
+  const [isLoading, setIsLoading] = useState(isEditMode);
+  const [originalData, setOriginalData] = useState(null);
+  
   // Step titles
-  const stepTitles = [
+  const stepTitles = isEditMode ? [
+    'Boat Details',
+    'Upload Photos/Videos', 
+    'Update Request'
+  ] : [
     'Boat Details',
     'Upload Photos/Videos', 
     'Schedule Appointment',
     'Submit Request'
   ];
   
+  // Load existing repair data for edit mode
+  useEffect(() => {
+    if (isEditMode && id) {
+      loadRepairData();
+    }
+  }, [isEditMode, id]);
+  
+  const loadRepairData = async () => {
+    try {
+      setIsLoading(true);
+      const response = await getRepairById(id);
+      
+      if (response.success) {
+        const repair = response.data;
+        setOriginalData(repair);
+        
+        // Populate form with existing data
+        setFormData({
+          serviceType: repair.serviceType || '',
+          boatType: repair.boatDetails?.boatType || '',
+          boatMake: repair.boatDetails?.boatMake || '',
+          boatModel: repair.boatDetails?.boatModel || '',
+          boatYear: repair.boatDetails?.boatYear?.toString() || '',
+          engineType: repair.boatDetails?.engineType || '',
+          engineModel: repair.boatDetails?.engineModel || '',
+          hullMaterial: repair.boatDetails?.hullMaterial || '',
+          problemDescription: repair.problemDescription || '',
+          serviceDescription: repair.serviceDescription || '',
+          photos: repair.photos || [],
+          calendlyEventId: repair.calendlyEventId || '',
+          calendlyEventUri: repair.calendlyEventUri || '',
+          scheduledDateTime: repair.scheduledDateTime || null,
+          serviceLocation: repair.serviceLocation || {
+            type: 'service_center',
+            address: { street: '', city: '', district: '', postalCode: '' },
+            marinaName: '',
+            dockNumber: ''
+          },
+          customerNotes: repair.customerNotes || ''
+        });
+        
+        // Set uploaded files
+        if (repair.photos && repair.photos.length > 0) {
+          setUploadedFiles(repair.photos.map(photo => ({
+            filename: photo.filename,
+            originalName: photo.originalName,
+            cloudinaryUrl: photo.cloudinaryUrl,
+            cloudinaryId: photo.cloudinaryId,
+            uploadedAt: photo.uploadedAt,
+            preview: photo.cloudinaryUrl
+          })));
+        }
+        
+        // Check if repair can be edited (until appointment date)
+        if (repair.scheduledDateTime) {
+          const appointmentDate = new Date(repair.scheduledDateTime);
+          const today = new Date();
+          
+          if (appointmentDate <= today) {
+            toast.error('This repair request cannot be edited. Appointment date has passed.');
+            navigate('/my-repairs');
+            return;
+          }
+        }
+
+        // Check if repair is cancelled
+        if (repair.status === 'cancelled') {
+          toast.error('This repair request cannot be edited. It has been cancelled.');
+          navigate('/my-repairs');
+          return;
+        }
+        
+        // Repair request loaded successfully
+      } else {
+        throw new Error(response.message || 'Failed to load repair request');
+      }
+    } catch (error) {
+      console.error('Error loading repair data:', error);
+      toast.error('Failed to load repair request for editing');
+      navigate('/my-repairs');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
   // Navigation functions
   const handleNext = () => {
     if (currentStep === 1) {
       if (!validateStep1()) {
         toast.error('Please fix the errors before proceeding');
+        return;
+      }
+    }
+    
+    if (currentStep === 3 && !isEditMode) {
+      if (!formData.scheduledDateTime) {
+        toast.error('Please book your appointment using the calendar above to proceed');
         return;
       }
     }
@@ -136,6 +240,25 @@ const RepairService = () => {
     }));
   };
 
+  const handleServiceLocationChange = (locationType) => {
+    setFormData(prev => ({
+      ...prev,
+      serviceLocation: {
+        ...prev.serviceLocation,
+        type: locationType,
+        // Reset address fields when changing location type
+        address: {
+          street: '',
+          city: '',
+          district: '',
+          postalCode: ''
+        },
+        marinaName: '',
+        dockNumber: ''
+      }
+    }));
+  };
+
   // File upload functions
   const handleFileUpload = async (files) => {
     if (!files || files.length === 0) return;
@@ -183,13 +306,18 @@ const RepairService = () => {
       
       const results = await Promise.all(uploadPromises);
       
-      setUploadedFiles(prev => [...prev, ...results]);
+      setUploadedFiles(prev => [...prev, ...results.map(r => ({
+        ...r,
+        cloudinaryUrl: r.secureUrl,
+        cloudinaryId: r.publicId
+      }))]);
       setFormData(prev => ({
         ...prev,
         photos: [...prev.photos, ...results.map(r => ({
           filename: r.publicId,
           originalName: r.originalFilename,
-          path: r.secureUrl,
+          cloudinaryUrl: r.secureUrl,
+          cloudinaryId: r.publicId,
           uploadedAt: new Date()
         }))]
       }));
@@ -442,7 +570,7 @@ const RepairService = () => {
     }
   }, [currentStep]);
 
-  // Submit repair request
+  // Submit repair request (create or update)
   const submitRepairRequest = async () => {
     try {
       setIsSubmitting(true);
@@ -465,36 +593,66 @@ const RepairService = () => {
           filename: photo.filename,
           originalName: photo.originalName,
           cloudinaryUrl: photo.cloudinaryUrl,
-          cloudinaryId: photo.cloudinaryId
+          cloudinaryId: photo.cloudinaryId,
+          uploadedAt: photo.uploadedAt || new Date()
         })),
-        scheduledDateTime: formData.scheduledDateTime,
-        calendlyEventId: formData.calendlyEventId,
-        calendlyEventUri: formData.calendlyEventUri,
         serviceLocation: formData.serviceLocation,
         customerNotes: formData.customerNotes
       };
 
-      console.log('Submitting repair request:', submissionData);
+      // Only include scheduling data for new requests
+      if (!isEditMode) {
+        submissionData.scheduledDateTime = formData.scheduledDateTime;
+        submissionData.calendlyEventId = formData.calendlyEventId;
+        submissionData.calendlyEventUri = formData.calendlyEventUri;
+      }
 
-      // Submit to backend
-      const response = await createBoatRepair(submissionData);
-      
-      if (response.success) {
-        toast.success('Repair service request submitted successfully! Visit on your scheduled date or contact support for emergencies.');
+      console.log(isEditMode ? 'Updating repair request:' : 'Submitting repair request:', submissionData);
+
+      let response;
+      if (isEditMode) {
+        // Update existing repair request
+        response = await updateRepairByCustomer(id, submissionData);
         
-        // Navigate to confirmation page with booking ID
-        navigate(`/booking-confirmation/${response.bookingId}`);
+        if (response.success) {
+          toast.success('Repair request updated successfully!');
+          navigate('/my-repairs');
+        } else {
+          throw new Error(response.message || 'Failed to update request');
+        }
       } else {
-        throw new Error(response.message || 'Failed to submit request');
+        // Create new repair request
+        response = await createBoatRepair(submissionData);
+        
+        if (response.success) {
+          toast.success('Repair service request submitted successfully! Visit on your scheduled date or contact support for emergencies.');
+          
+          // Navigate to confirmation page with booking ID
+          navigate(`/booking-confirmation/${response.bookingId}`);
+        } else {
+          throw new Error(response.message || 'Failed to submit request');
+        }
       }
 
     } catch (error) {
-      console.error('Error submitting repair request:', error);
-      toast.error(error.message || 'Failed to submit repair request. Please try again.');
+      console.error(`Error ${isEditMode ? 'updating' : 'submitting'} repair request:`, error);
+      toast.error(error.message || `Failed to ${isEditMode ? 'update' : 'submit'} repair request. Please try again.`);
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  // Show loading state for edit mode
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <FaSpinner className="animate-spin text-4xl text-teal-600 mx-auto mb-4" />
+          <p className="text-gray-600">Loading repair request for editing...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -503,8 +661,15 @@ const RepairService = () => {
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Boat Repair Service</h1>
-              <p className="text-gray-600 mt-2">Book a professional repair service for your boat</p>
+              <h1 className="text-3xl font-bold text-gray-900">
+                {isEditMode ? 'Edit Repair Request' : 'Boat Repair Service'}
+              </h1>
+              <p className="text-gray-600 mt-2">
+                {isEditMode 
+                  ? 'Update your repair request details' 
+                  : 'Book a professional repair service for your boat'
+                }
+              </p>
             </div>
             <button
               onClick={() => navigate('/dashboard')}
@@ -729,6 +894,113 @@ const RepairService = () => {
                   </select>
                 </div>
 
+                {/* Service Location */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Service Location *
+                  </label>
+                  <select
+                    value={formData.serviceLocation.type}
+                    onChange={(e) => handleServiceLocationChange(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-teal-500 focus:border-teal-500"
+                  >
+                    <option value="service_center">Our Service Center (Colombo Marina)</option>
+                    <option value="marina">Marina (Your Boat's Location)</option>
+                    <option value="customer_location">Customer Location (We Come to You)</option>
+                  </select>
+                  <p className="mt-1 text-sm text-gray-500">
+                    {formData.serviceLocation.type === 'service_center' && 'Bring your boat to our professional service center'}
+                    {formData.serviceLocation.type === 'marina' && 'We will service your boat at the marina where it\'s docked'}
+                    {formData.serviceLocation.type === 'customer_location' && 'We will come to your location to service your boat'}
+                  </p>
+                </div>
+
+                {/* Marina Details */}
+                {formData.serviceLocation.type === 'marina' && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Marina Name *
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.serviceLocation.marinaName || ''}
+                        onChange={(e) => handleNestedInputChange('serviceLocation', 'marinaName', e.target.value)}
+                        placeholder="e.g., Colombo Marina, Galle Harbor"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-teal-500 focus:border-teal-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Dock Number
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.serviceLocation.dockNumber || ''}
+                        onChange={(e) => handleNestedInputChange('serviceLocation', 'dockNumber', e.target.value)}
+                        placeholder="e.g., A-12, B-5"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-teal-500 focus:border-teal-500"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Customer Location Details */}
+                {formData.serviceLocation.type === 'customer_location' && (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Street Address *
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.serviceLocation.address.street || ''}
+                        onChange={(e) => handleDeepNestedInputChange('serviceLocation', 'address', 'street', e.target.value)}
+                        placeholder="e.g., 123 Ocean Drive"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-teal-500 focus:border-teal-500"
+                      />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          City *
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.serviceLocation.address.city || ''}
+                          onChange={(e) => handleDeepNestedInputChange('serviceLocation', 'address', 'city', e.target.value)}
+                          placeholder="e.g., Colombo"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-teal-500 focus:border-teal-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          District *
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.serviceLocation.address.district || ''}
+                          onChange={(e) => handleDeepNestedInputChange('serviceLocation', 'address', 'district', e.target.value)}
+                          placeholder="e.g., Western Province"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-teal-500 focus:border-teal-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Postal Code
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.serviceLocation.address.postalCode || ''}
+                          onChange={(e) => handleDeepNestedInputChange('serviceLocation', 'address', 'postalCode', e.target.value)}
+                          placeholder="e.g., 00100"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-teal-500 focus:border-teal-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Problem Description */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -926,8 +1198,8 @@ const RepairService = () => {
             </div>
           )}
 
-          {/* Step 3: Scheduling */}
-          {currentStep === 3 && (
+          {/* Step 3: Scheduling (New requests only) */}
+          {currentStep === 3 && !isEditMode && (
             <div>
               <div className="p-8 pb-0">
                 <h2 className="text-2xl font-bold text-gray-900 mb-6">Schedule Appointment</h2>
@@ -971,63 +1243,20 @@ const RepairService = () => {
                   style={{ minWidth: '320px', height: '700px' }}>
                 </div>
                 
-                {/* Manual Date/Time Input */}
-                <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-                  <h4 className="text-md font-semibold text-gray-900 mb-3">Confirm Your Scheduled Time</h4>
-                  <p className="text-sm text-gray-600 mb-4">
-                    After booking with Calendly above, please enter your confirmed appointment time below:
-                  </p>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Scheduled Date
-                      </label>
-                      <input
-                        type="date"
-                        value={formData.scheduledDateTime ? formData.scheduledDateTime.toISOString().split('T')[0] : ''}
-                        onChange={(e) => {
-                          const date = e.target.value;
-                          const time = formData.scheduledDateTime ? formData.scheduledDateTime.toTimeString().split(' ')[0] : '10:00';
-                          setFormData(prev => ({
-                            ...prev,
-                            scheduledDateTime: new Date(`${date}T${time}`)
-                          }));
-                        }}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-teal-500 focus:border-teal-500"
-                        required
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Scheduled Time
-                      </label>
-                      <input
-                        type="time"
-                        value={formData.scheduledDateTime ? formData.scheduledDateTime.toTimeString().split(' ')[0] : ''}
-                        onChange={(e) => {
-                          const time = e.target.value;
-                          const date = formData.scheduledDateTime ? formData.scheduledDateTime.toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
-                          setFormData(prev => ({
-                            ...prev,
-                            scheduledDateTime: new Date(`${date}T${time}`)
-                          }));
-                        }}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-teal-500 focus:border-teal-500"
-                        required
-                      />
+                {/* Calendly Booking Required Notice */}
+                {!formData.scheduledDateTime && (
+                  <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <div className="flex items-start">
+                      <FaCalendarAlt className="text-yellow-600 mr-3 mt-1" />
+                      <div>
+                        <h4 className="text-md font-semibold text-yellow-800 mb-2">Booking Required</h4>
+                        <p className="text-sm text-yellow-700">
+                          Please book your appointment using the calendar above to proceed. Manual date entry is not allowed.
+                        </p>
+                      </div>
                     </div>
                   </div>
-                  
-                  {formData.scheduledDateTime && (
-                    <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
-                      <p className="text-green-800 text-sm">
-                        ✅ Confirmed: {formData.scheduledDateTime.toLocaleDateString()} at {formData.scheduledDateTime.toLocaleTimeString()}
-                      </p>
-                    </div>
-                  )}
-                </div>
+                )}
               </div>
               
               {/* Additional Information */}
@@ -1046,10 +1275,12 @@ const RepairService = () => {
             </div>
           )}
 
-          {/* Step 4: Submit Request */}
-          {currentStep === 4 && (
+          {/* Step 3: Update Request (Edit mode) or Step 4: Submit Request (New mode) */}
+          {((currentStep === 3 && isEditMode) || (currentStep === 4 && !isEditMode)) && (
             <div className="p-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">Submit Request</h2>
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">
+                {isEditMode ? 'Update Request' : 'Submit Request'}
+              </h2>
               
               {/* Service Summary */}
               <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 mb-8">
@@ -1103,34 +1334,71 @@ const RepairService = () => {
                 </div>
 
                 {/* Appointment Details */}
-                <div className="border-t border-gray-200 pt-6 mb-6">
-                  <h4 className="font-semibold text-gray-800 mb-4">Appointment Details</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-3">
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Scheduled Date:</span>
-                        <span className="font-medium text-gray-900">
-                          {formData.scheduledDateTime ? formData.scheduledDateTime.toLocaleDateString() : 'Not scheduled'}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Scheduled Time:</span>
-                        <span className="font-medium text-gray-900">
-                          {formData.scheduledDateTime ? formData.scheduledDateTime.toLocaleTimeString() : 'Not scheduled'}
-                        </span>
+                {!isEditMode && (
+                  <div className="border-t border-gray-200 pt-6 mb-6">
+                    <h4 className="font-semibold text-gray-800 mb-4">Appointment Details</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-3">
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Scheduled Date:</span>
+                          <span className="font-medium text-gray-900">
+                            {formData.scheduledDateTime ? formData.scheduledDateTime.toLocaleDateString() : 'Not scheduled'}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Scheduled Time:</span>
+                          <span className="font-medium text-gray-900">
+                            {formData.scheduledDateTime ? formData.scheduledDateTime.toLocaleTimeString() : 'Not scheduled'}
+                          </span>
+                        </div>
                       </div>
                     </div>
+                  </div>
+                )}
+                
+                {isEditMode && originalData && (
+                  <div className="border-t border-gray-200 pt-6 mb-6">
+                    <h4 className="font-semibold text-gray-800 mb-4">Current Appointment</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-3">
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Scheduled Date:</span>
+                          <span className="font-medium text-gray-900">
+                            {originalData.scheduledDateTime ? new Date(originalData.scheduledDateTime).toLocaleDateString() : 'Not scheduled'}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Scheduled Time:</span>
+                          <span className="font-medium text-gray-900">
+                            {originalData.scheduledDateTime ? new Date(originalData.scheduledDateTime).toLocaleTimeString() : 'Not scheduled'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <p className="text-blue-800 text-sm">
+                        <strong>Note:</strong> Your appointment date and time cannot be changed. To reschedule, please contact support.
+                      </p>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Additional Details */}
+                <div className="border-t border-gray-200 pt-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-3">
                       <div className="flex justify-between">
                         <span className="text-gray-600">Files Uploaded:</span>
                         <span className="font-medium text-gray-900">{formData.photos.length} files</span>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Calendly Event:</span>
-                        <span className="font-medium text-gray-900">
-                          {formData.calendlyEventId ? 'Booked' : 'Not booked'}
-                        </span>
-                      </div>
+                      {!isEditMode && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Calendly Event:</span>
+                          <span className="font-medium text-gray-900">
+                            {formData.calendlyEventId ? 'Booked' : 'Not booked'}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1155,24 +1423,45 @@ const RepairService = () => {
 
               {/* Next Steps Information */}
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8">
-                <h3 className="text-lg font-semibold text-blue-800 mb-4">What Happens Next?</h3>
+                <h3 className="text-lg font-semibold text-blue-800 mb-4">
+                  {isEditMode ? 'After Updating Your Request' : 'What Happens Next?'}
+                </h3>
                 <div className="space-y-3 text-blue-700">
-                  <div className="flex items-start">
-                    <span className="bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-semibold mr-3 mt-0.5">1</span>
-                    <p><strong>Scheduled Visit:</strong> Visit our service center on your scheduled date: <strong>{formData.scheduledDateTime ? formData.scheduledDateTime.toLocaleDateString() : 'Not scheduled'}</strong></p>
-                  </div>
-                  <div className="flex items-start">
-                    <span className="bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-semibold mr-3 mt-0.5">2</span>
-                    <p><strong>Estimate Review:</strong> Our technician will analyze your photos/videos and send you a detailed estimate</p>
-                  </div>
-                  <div className="flex items-start">
-                    <span className="bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-semibold mr-3 mt-0.5">3</span>
-                    <p><strong>Service Completion:</strong> Repairs will be completed during your scheduled visit</p>
-                  </div>
-                  <div className="flex items-start">
-                    <span className="bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-semibold mr-3 mt-0.5">4</span>
-                    <p><strong>Payment:</strong> Pay after service completion</p>
-                  </div>
+                  {isEditMode ? (
+                    <>
+                      <div className="flex items-start">
+                        <span className="bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-semibold mr-3 mt-0.5">1</span>
+                        <p><strong>Request Updated:</strong> Your repair request has been updated with the new information</p>
+                      </div>
+                      <div className="flex items-start">
+                        <span className="bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-semibold mr-3 mt-0.5">2</span>
+                        <p><strong>Appointment Confirmed:</strong> Your scheduled appointment remains: <strong>{originalData?.scheduledDateTime ? new Date(originalData.scheduledDateTime).toLocaleDateString() : 'Not scheduled'}</strong></p>
+                      </div>
+                      <div className="flex items-start">
+                        <span className="bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-semibold mr-3 mt-0.5">3</span>
+                        <p><strong>Technician Review:</strong> Our technician will review your updated details before your visit</p>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex items-start">
+                        <span className="bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-semibold mr-3 mt-0.5">1</span>
+                        <p><strong>Scheduled Visit:</strong> Visit our service center on your scheduled date: <strong>{formData.scheduledDateTime ? formData.scheduledDateTime.toLocaleDateString() : 'Not scheduled'}</strong></p>
+                      </div>
+                      <div className="flex items-start">
+                        <span className="bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-semibold mr-3 mt-0.5">2</span>
+                        <p><strong>Estimate Review:</strong> Our technician will analyze your photos/videos and send you a detailed estimate</p>
+                      </div>
+                      <div className="flex items-start">
+                        <span className="bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-semibold mr-3 mt-0.5">3</span>
+                        <p><strong>Service Completion:</strong> Repairs will be completed during your scheduled visit</p>
+                      </div>
+                      <div className="flex items-start">
+                        <span className="bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-semibold mr-3 mt-0.5">4</span>
+                        <p><strong>Payment:</strong> Pay after service completion</p>
+                      </div>
+                    </>
+                  )}
                 </div>
                 
                 <div className="mt-4 p-4 bg-blue-100 rounded-lg">
@@ -1245,8 +1534,6 @@ const RepairService = () => {
                   problemDescription: 'Engine is making strange noises and not starting properly. This is a test description for development purposes.',
                   serviceDescription: 'Please check engine mounts and fuel system. Test service requirements.',
                   photos: [],
-                  preferredDate: '',
-                  preferredTimeSlot: '',
                   serviceLocation: {
                     type: 'service_center',
                     address: {
@@ -1254,7 +1541,9 @@ const RepairService = () => {
                       city: '',
                       district: '',
                       postalCode: ''
-                    }
+                    },
+                    marinaName: '',
+                    dockNumber: ''
                   },
                   customerNotes: ''
                 });
@@ -1275,12 +1564,12 @@ const RepairService = () => {
                 {isSubmitting ? (
                   <>
                     <FaSpinner className="animate-spin mr-2" />
-                    Submitting...
+                    {isEditMode ? 'Updating...' : 'Submitting...'}
                   </>
                 ) : (
                   <>
                     <FaCheck className="mr-2" />
-                    Submit Request
+                    {isEditMode ? 'Update Request' : 'Submit Request'}
                   </>
                 )}
               </button>

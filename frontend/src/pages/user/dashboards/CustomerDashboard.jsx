@@ -45,18 +45,18 @@ const CustomerDashboard = ({ firstName }) => {
       route: '/profile'
     },
     { 
-      name: 'My Bookings', 
+      name: 'My Rides', 
       icon: <FaCalendarAlt />, 
-      description: 'View and manage your upcoming bookings',
+      description: 'View and manage your boat ride bookings',
       color: 'bg-indigo-500',
       route: '/my-bookings'
     },
     { 
-      name: 'Service History', 
-      icon: <FaHistory />, 
-      description: 'View your past services and maintenance records',
-      color: 'bg-pink-500',
-      route: '/service-history'
+      name: 'My Repairs', 
+      icon: <FaTools />, 
+      description: 'View and manage your repair requests',
+      color: 'bg-orange-500',
+      route: '/my-repairs'
     },
     { 
       name: 'Payment History', 

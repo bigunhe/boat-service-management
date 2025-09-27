@@ -5,14 +5,32 @@ import jwt from 'jsonwebtoken';
 const registerUser = async(req,res)=>{
   try{
 
-    const {name, email, nic, password, passwordConfirm, phone, address, role} = req.body;
+    const {
+      name,
+      email,
+      nic,
+      password,
+      passwordConfirm,
+      phone,
+      address,
+      role,
+      // Employee specific fields
+      employeeId,
+      position,
+      dateOfBirth,
+      emergencyContact
+    } = req.body;
+
+    console.log('Creating user with role:', role);
+    console.log('Email:', email);
 
     const existingUser = await User.findOne({email});
     if(existingUser){
-      return res.status(400).json({error: 'User already exists'});
+      return res.status(400).json({error: 'User with this email already exists'});
     }
 
-    const newUser = await User.create({
+    // Build user data object
+    const userData = {
       name, 
       email, 
       nic, 
@@ -21,7 +39,43 @@ const registerUser = async(req,res)=>{
       phone, 
       address, 
       role: role || 'customer'
-    });
+    };
+
+    // Add employee data if role is employee
+    if (role === 'employee') {
+      // Auto-generate employee ID if not provided
+      let finalEmployeeId = employeeId;
+      
+      if (!finalEmployeeId) {
+        // Get the count of existing employees to generate next ID
+        const employeeCount = await User.countDocuments({ role: 'employee' });
+        finalEmployeeId = `EMP${String(employeeCount + 1).padStart(3, '0')}`;
+      } else {
+        // Check for duplicate employee ID if manually provided
+        const existingEmployee = await User.findOne({'employeeData.employeeId': finalEmployeeId});
+        if (existingEmployee) {
+          return res.status(400).json({error: 'Employee ID already exists'});
+        }
+      }
+
+      userData.employeeData = {
+        employeeId: finalEmployeeId,
+        position,
+        hireDate: new Date(), // Set hire date when creating employee
+        dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : undefined,
+        emergencyContact: {
+          name: emergencyContact?.name,
+          phone: emergencyContact?.phone,
+          relationship: emergencyContact?.relationship
+        }
+      };
+    }
+
+    console.log('User data before creation:', JSON.stringify(userData, null, 2));
+    
+    const newUser = await User.create(userData);
+    
+    console.log('User created successfully:', newUser.email, 'Role:', newUser.role);
     
     const token = jwt.sign(
       {id: newUser._id, role: newUser.role},
@@ -52,6 +106,34 @@ const registerUser = async(req,res)=>{
   }
 };
 
+// Get all users (for debugging) - no auth required
+const getAllUsersDebug = async (req, res) => {
+  try {
+    const users = await User.find({}).select('-password');
+    console.log('Total users in database:', users.length);
+    console.log('Users by role:');
+    const roleCount = {};
+    users.forEach(user => {
+      roleCount[user.role] = (roleCount[user.role] || 0) + 1;
+      console.log(`- ${user.email} (${user.role})`);
+    });
+    console.log('Role distribution:', roleCount);
+    
+    res.status(200).json({
+      success: true,
+      count: users.length,
+      users: users,
+      roleDistribution: roleCount
+    });
+  } catch (error) {
+    console.error('Error fetching users:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch users',
+      error: error.message
+    });
+  }
+};
 
 // login a user - original version //////////////////////////////////////////////////////////////
 // const loginUser = async(req,res)=>{
@@ -351,7 +433,7 @@ const getUserById = async(req, res) =>{
     }
 
     const userId = req.params.id;
-    const user = await User.findById(userId);
+    const user = await User.findById(userId).select('+password');
 
     if(!user){
       return res.status(404).json({
@@ -359,7 +441,10 @@ const getUserById = async(req, res) =>{
         message: 'User not found'
       });
     }
-    user.password = undefined;
+    
+    // For admin access, include password (but don't send it to non-admin users)
+    // Note: Password is hashed, so it's safe to show to admin
+    // user.password = undefined; // Commented out for admin access
 
     res.status(200).json({
       success: true,
@@ -498,18 +583,72 @@ const deleteUser = async(req, res) =>{
   }
 }
 
+// Update user (admin only)
+const updateUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updateData = req.body;
+
+    // Remove sensitive fields that shouldn't be updated directly
+    delete updateData.password;
+    delete updateData.passwordConfirm;
+    delete updateData._id;
+    delete updateData.createdAt;
+
+    // Find and update user
+    const user = await User.findByIdAndUpdate(
+      id,
+      updateData,
+      { new: true, runValidators: true }
+    ).select('-password');
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'User updated successfully',
+      user
+    });
+  } catch (error) {
+    console.error('User update error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'User update failed',
+      error: error.message
+    });
+  }
+};
 
 // search users
 const searchUsers = async(req, res) =>{
   try{
-    const {query, role, limit = 10} = req.query;
+    const {
+      query, 
+      role, 
+      page = 1, 
+      limit = 10, 
+      sortBy = 'createdAt', 
+      sortOrder = 'desc',
+      search
+    } = req.query;
+    
     let searchCriteria = {};
 
+    // Use 'search' parameter if provided, otherwise use 'query'
+    const searchTerm = search || query;
+    
     // search by name or email
-    if(query){
+    if(searchTerm){
       searchCriteria.$or = [
-        {name: {$regex: query, $options: 'i'}}, // case insensitive search
-        {email: {$regex: query, $options: 'i'}}
+        {name: {$regex: searchTerm, $options: 'i'}}, // case insensitive search
+        {email: {$regex: searchTerm, $options: 'i'}},
+        {phone: {$regex: searchTerm, $options: 'i'}},
+        {nic: {$regex: searchTerm, $options: 'i'}}
       ];
     }
 
@@ -518,21 +657,36 @@ const searchUsers = async(req, res) =>{
       searchCriteria.role = role;
     }
 
-    // limit the number of results
+    // Calculate pagination
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+    const skip = (pageNum - 1) * limitNum;
+
+    // Build sort object
+    const sortObj = {};
+    sortObj[sortBy] = sortOrder === 'asc' ? 1 : -1;
+
+    // Get total count for pagination
+    const total = await User.countDocuments(searchCriteria);
+    const totalPages = Math.ceil(total / limitNum);
+
+    // Get users with pagination and sorting
     const users = await User.find(searchCriteria)
-    .limit(parseInt(limit))
-    .select('-password'); // exclude password from response
+      .select('-password') // exclude password from response
+      .sort(sortObj)
+      .skip(skip)
+      .limit(limitNum);
 
     res.status(200).json({
       success: true,
       message: 'Users found successfully',
-      data: {
-        users,
-        count: users.length,
-        query: query || '',
-        role: role || 'all'
-
-      }
+      users,
+      total,
+      totalPages,
+      currentPage: pageNum,
+      limit: limitNum,
+      query: searchTerm || '',
+      role: role || 'all'
     });
   }catch(error){
     console.error('User search error:', error);
@@ -541,9 +695,8 @@ const searchUsers = async(req, res) =>{
       message: 'User search failed',
       error: error.message
     });
-
   }
 }
 
 
-export {registerUser, loginUser, updateProfile, updatePassword, getUserProfile, getAllUsers, deleteUser, searchUsers, getUserById}
+export {registerUser, loginUser, updateProfile, updatePassword, getUserProfile, getAllUsers, getAllUsersDebug, deleteUser, updateUser, searchUsers, getUserById}

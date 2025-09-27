@@ -130,8 +130,7 @@ const userSchema = new mongoose.Schema({
       trim: true
     },
     hireDate: {
-      type: Date,
-      default: Date.now
+      type: Date
     },
     dateOfBirth: {
       type: Date

@@ -1,8 +1,8 @@
 import React from 'react';
-import { useAuth } from '../context/AuthContext';
-import CustomerDashboard from './dashboards/CustomerDashboard';
-import EmployeeDashboard from './dashboards/EmployeeDashboard';
-import AdminDashboard from './dashboards/AdminDashboard';
+import { useAuth } from '../../../context/AuthContext';
+import CustomerDashboard from './CustomerDashboard';
+import EmployeeDashboard from './EmployeeDashboard';
+import AdminDashboard from './AdminDashboard';
 
 const Dashboard = () => {
   const { user } = useAuth();

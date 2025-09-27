@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { FaDownload, FaPrint, FaCalendarAlt, FaUser, FaShip, FaTools, FaCheckCircle, FaArrowLeft } from 'react-icons/fa';
 import toast from 'react-hot-toast';
-import { getRepairByBookingId, generatePDFConfirmation } from '../../services/repairService';
+import { getRepairByBookingId, generatePDFConfirmation } from './repairApi';
 
 const BookingConfirmation = () => {
   const { bookingId } = useParams();
@@ -289,6 +289,24 @@ const BookingConfirmation = () => {
                 <p className="text-sm text-gray-600">Files Uploaded</p>
                 <p className="font-medium text-gray-900">{repairData.photos.length} file(s)</p>
               </div>
+              <div>
+                <p className="text-sm text-gray-600">Service Location</p>
+                <p className="font-medium text-gray-900 capitalize">{repairData.serviceLocation?.type?.replace('_', ' ') || 'Service Center'}</p>
+                {repairData.serviceLocation?.type === 'customer_location' && repairData.serviceLocation?.address && (
+                  <p className="text-sm text-gray-500 mt-1">
+                    {[repairData.serviceLocation.address.street, repairData.serviceLocation.address.city, repairData.serviceLocation.address.district].filter(Boolean).join(', ')}
+                  </p>
+                )}
+                {repairData.serviceLocation?.type === 'marina' && repairData.serviceLocation?.marinaName && (
+                  <p className="text-sm text-gray-500 mt-1">
+                    {repairData.serviceLocation.marinaName}
+                    {repairData.serviceLocation.dockNumber && ` - Dock ${repairData.serviceLocation.dockNumber}`}
+                  </p>
+                )}
+                {repairData.serviceLocation?.type === 'service_center' && (
+                  <p className="text-sm text-gray-500 mt-1">Colombo Marina Service Center</p>
+                )}
+              </div>
             </div>
           </div>
 
@@ -339,10 +357,10 @@ const BookingConfirmation = () => {
             Go to Dashboard
           </button>
           <button
-            onClick={() => navigate('/my-bookings')}
-            className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+            onClick={() => navigate(`/my-repairs?new=${repairData._id}`)}
+            className="px-6 py-3 border border-teal-600 text-teal-600 rounded-lg hover:bg-teal-50 transition-colors"
           >
-            View My Bookings
+            View All My Repairs
           </button>
         </div>
       </div>

@@ -120,8 +120,7 @@ const boatRepairSchema = new mongoose.Schema({
   // Booking Reference
   bookingId: {
     type: String,
-    unique: true,
-    required: true
+    unique: true
   },
 
   // Status Management
@@ -148,6 +147,29 @@ const boatRepairSchema = new mongoose.Schema({
   assignedAt: {
     type: Date
   },
+
+  // Boat Handover
+  boatReceivedAt: {
+    type: Date
+  },
+
+  receivedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
+
+  // Status History
+  statusUpdates: [{
+    status: {
+      type: String,
+      enum: ['pending', 'assigned', 'confirmed', 'in_progress', 'waiting_parts', 'completed', 'cancelled', 'rescheduled']
+    },
+    updatedAt: {
+      type: Date,
+      default: Date.now
+    },
+    notes: String
+  }],
 
   // Cost Information
   estimatedCost: {
