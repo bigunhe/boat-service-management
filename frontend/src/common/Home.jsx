@@ -72,13 +72,13 @@ const Home = () => {
                   <>
                     <Link
                       to="/login"
-                      className="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-white bg-teal-600 hover:bg-teal-700 md:py-4 md:text-lg md:px-10"
+                      className="flex items-center justify-center px-6 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-gradient-to-r from-teal-600 to-blue-600 hover:from-teal-700 hover:to-blue-700 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 whitespace-nowrap"
                     >
                       Sign In
                     </Link>
                     <Link
                       to="/register"
-                      className="w-full flex items-center justify-center px-8 py-3 border border-gray-300 text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 md:py-4 md:text-lg md:px-10"
+                      className="flex items-center justify-center px-6 py-2 border-2 border-teal-600 text-sm font-medium rounded-lg text-teal-600 bg-white hover:bg-teal-50 hover:border-teal-700 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 whitespace-nowrap"
                     >
                       Sign Up
                     </Link>
@@ -87,40 +87,6 @@ const Home = () => {
               </div>
             </div>
             
-            {/* TEMPORARY TEST BUTTONS - REMOVE IN PRODUCTION */}
-            {!user && (
-              <div className="mt-4 max-w-md mx-auto sm:flex sm:justify-center">
-                <div className="space-y-2 sm:space-y-0 sm:space-x-2 sm:flex">
-                  <button
-                    onClick={() => {
-                      testLogin('employee');
-                      navigate('/dashboard');
-                    }}
-                    className="inline-flex items-center px-4 py-2 border border-transparent text-xs font-medium rounded-md text-white bg-orange-500 hover:bg-orange-600 transition-colors"
-                  >
-                    🧪 Test Employee
-                  </button>
-                  <button
-                    onClick={() => {
-                      testLogin('admin');
-                      navigate('/dashboard');
-                    }}
-                    className="inline-flex items-center px-4 py-2 border border-transparent text-xs font-medium rounded-md text-white bg-red-500 hover:bg-red-600 transition-colors"
-                  >
-                    🧪 Test Admin
-                  </button>
-                  <button
-                    onClick={() => {
-                      testLogin('customer');
-                      navigate('/dashboard');
-                    }}
-                    className="inline-flex items-center px-4 py-2 border border-transparent text-xs font-medium rounded-md text-white bg-green-500 hover:bg-green-600 transition-colors"
-                  >
-                    🧪 Test Customer
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </div>

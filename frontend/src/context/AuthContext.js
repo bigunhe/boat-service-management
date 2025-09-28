@@ -155,6 +155,11 @@ export const AuthProvider = ({ children }) => {
     return { success: true, user: testUser };
   };
 
+  const updateUser = (updatedUserData) => {
+    setUser(updatedUserData);
+    localStorage.setItem('user', JSON.stringify(updatedUserData));
+  };
+
   const value = {
     user,
     token,
@@ -164,6 +169,7 @@ export const AuthProvider = ({ children }) => {
     logout,
     isAuthenticated,
     hasRole,
+    updateUser,
     testLogin // Temporary - REMOVE IN PRODUCTION
   };
 

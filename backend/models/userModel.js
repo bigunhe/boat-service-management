@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 
 // User Schema - defines how user data is stored
 const userSchema = new mongoose.Schema({
@@ -179,7 +180,12 @@ const userSchema = new mongoose.Schema({
       type: Date,
       default: Date.now
     }
-  }
+  },
+
+  // Password reset fields
+  resetPasswordToken: String,
+  resetPasswordExpires: Date,
+  passwordChangedAt: Date
 }, {
   timestamps: true // Adds createdAt and updatedAt fields
 });
@@ -227,6 +233,20 @@ userSchema.methods.isAdmin = function() {
 // Method to check if user is employee
 userSchema.methods.isEmployee = function() {
   return this.role === 'employee' || this.role === 'admin';
+};
+
+// Method to generate password reset token
+userSchema.methods.createPasswordResetToken = function() {
+  const resetToken = crypto.randomBytes(32).toString('hex');
+  
+  this.resetPasswordToken = crypto
+    .createHash('sha256')
+    .update(resetToken)
+    .digest('hex');
+  
+  this.resetPasswordExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
+  
+  return resetToken;
 };
 
 // Create and export the User model

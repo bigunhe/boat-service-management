@@ -1,11 +1,11 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
-import { FaEye, FaEyeSlash } from 'react-icons/fa';
+import { FaEye, FaEyeSlash, FaCheck, FaTimes } from 'react-icons/fa';
 
 const schema = yup.object({
   name: yup
@@ -27,11 +27,25 @@ const schema = yup.object({
     .required('NIC is required')
     .test('nic-format', 'Please enter a valid NIC number', (value) => {
       if (!value) return false;
+      
+      const currentYear = new Date().getFullYear();
+      
       // Old format: 9 digits + V/X
       const oldFormat = /^[0-9]{9}[VX]$/i;
-      // New format: 12 digits (first 4 as birth year)
+      if (oldFormat.test(value)) {
+        const firstTwoDigits = parseInt(value.substring(0, 2));
+        const birthYear = 1900 + firstTwoDigits;
+        return birthYear >= 1901 && birthYear <= currentYear;
+      }
+      
+      // New format: 12 digits
       const newFormat = /^[0-9]{12}$/;
-      return oldFormat.test(value) || newFormat.test(value);
+      if (newFormat.test(value)) {
+        const birthYear = parseInt(value.substring(0, 4));
+        return birthYear >= 1901 && birthYear <= currentYear;
+      }
+      
+      return false;
     }),
   phone: yup
     .string()
@@ -66,16 +80,206 @@ const Register = () => {
   const { register: registerUser, loading } = useAuth();
   const navigate = useNavigate();
   
-  const [showPassword, setShowPassword] = React.useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    nic: '',
+    phone: '',
+    password: '',
+    confirmPassword: '',
+    address: {
+      street: '',
+      city: '',
+      district: '',
+      postalCode: ''
+    }
+  });
   
   const {
     register,
     handleSubmit,
-    formState: { errors }
+    formState: { errors },
+    watch,
+    setValue
   } = useForm({
     resolver: yupResolver(schema)
   });
+
+  // Watch specific form values for real-time validation
+  const watchedName = watch('name');
+  const watchedEmail = watch('email');
+  const watchedNIC = watch('nic');
+  const watchedPhone = watch('phone');
+  const watchedPassword = watch('password');
+  const watchedConfirmPassword = watch('confirmPassword');
+  const watchedAddress = watch('address');
+
+  // Update formData when form values change
+  useEffect(() => {
+    setFormData(prev => ({
+      ...prev,
+      name: watchedName || '',
+      email: watchedEmail || '',
+      nic: watchedNIC || '',
+      phone: watchedPhone || '',
+      password: watchedPassword || '',
+      confirmPassword: watchedConfirmPassword || '',
+      address: watchedAddress || { street: '', city: '', district: '', postalCode: '' }
+    }));
+  }, [watchedName, watchedEmail, watchedNIC, watchedPhone, watchedPassword, watchedConfirmPassword, watchedAddress]);
+
+  // Real-time validation functions
+  const validateName = (value) => {
+    if (!value) return { isValid: false, message: 'Name is required' };
+    const words = value.trim().split(/\s+/);
+    if (words.length < 2) return { isValid: false, message: 'Name must contain at least two words' };
+    if (value.length < 3) return { isValid: false, message: 'Name must be at least 3 characters' };
+    return { isValid: true, message: 'Name looks good!' };
+  };
+
+  const validateEmail = (value) => {
+    if (!value) return { isValid: false, message: 'Email is required' };
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(value)) return { isValid: false, message: 'Please enter a valid email address' };
+    return { isValid: true, message: 'Email format is valid!' };
+  };
+
+  const validateNIC = (value) => {
+    if (!value) return { isValid: false, message: 'NIC is required' };
+    
+    const currentYear = new Date().getFullYear();
+    
+    // Old format: 9 digits + V/X
+    const oldFormat = /^[0-9]{9}[VX]$/i;
+    if (oldFormat.test(value)) {
+      const firstTwoDigits = parseInt(value.substring(0, 2));
+      const birthYear = 1900 + firstTwoDigits;
+      
+      // Check if birth year is valid (1901 to current year)
+      if (birthYear < 1901 || birthYear > currentYear) {
+        return { isValid: false, message: `Invalid birth year: ${birthYear}. Must be between 1901 and ${currentYear}` };
+      }
+      
+      return { isValid: true, message: `NIC valid! Birth year: ${birthYear}` };
+    }
+    
+    // New format: 12 digits
+    const newFormat = /^[0-9]{12}$/;
+    if (newFormat.test(value)) {
+      const birthYear = parseInt(value.substring(0, 4));
+      
+      // Check if birth year is valid (1901 to current year)
+      if (birthYear < 1901 || birthYear > currentYear) {
+        return { isValid: false, message: `Invalid birth year: ${birthYear}. Must be between 1901 and ${currentYear}` };
+      }
+      
+      return { isValid: true, message: `NIC valid! Birth year: ${birthYear}` };
+    }
+    
+    // Partial input validation
+    if (value.length <= 9) {
+      // Only allow digits for first 9 characters
+      if (!/^[0-9]+$/.test(value)) {
+        return { isValid: false, message: 'Only digits allowed for first 9 characters' };
+      }
+      return { isValid: false, message: 'Enter 9 digits, then V/X or continue with digits' };
+    }
+    
+    if (value.length === 10) {
+      // Check if 10th character is V or X (old format) or digit (new format)
+      if (/^[0-9]{9}[VX]$/i.test(value)) {
+        // Old format detected, validate birth year
+        const firstTwoDigits = parseInt(value.substring(0, 2));
+        const birthYear = 1900 + firstTwoDigits;
+        if (birthYear < 1901 || birthYear > currentYear) {
+          return { isValid: false, message: `Invalid birth year: ${birthYear}. Must be between 1901 and ${currentYear}` };
+        }
+        return { isValid: true, message: `NIC valid! Birth year: ${birthYear}` };
+      } else if (/^[0-9]{10}$/.test(value)) {
+        return { isValid: false, message: 'Continue entering digits for new format (12 total)' };
+      } else {
+        return { isValid: false, message: '10th character should be V/X or digit' };
+      }
+    }
+    
+    if (value.length === 11) {
+      if (/^[0-9]{11}$/.test(value)) {
+        return { isValid: false, message: 'One more digit needed for new format' };
+      } else {
+        return { isValid: false, message: 'Invalid format. Use 9 digits + V/X or 12 digits' };
+      }
+    }
+    
+    if (value.length > 12) {
+      return { isValid: false, message: 'NIC cannot exceed 12 characters' };
+    }
+    
+    return { isValid: false, message: 'Please enter a valid NIC number' };
+  };
+
+  const validatePhone = (value) => {
+    if (!value) return { isValid: false, message: 'Phone number is required' };
+    const phoneRegex = /^(\+94|0)?[0-9]{9}$/;
+    const cleanPhone = value.replace(/\s/g, '');
+    if (!phoneRegex.test(cleanPhone)) return { isValid: false, message: 'Please enter a valid Sri Lankan phone number' };
+    return { isValid: true, message: 'Phone number is valid!' };
+  };
+
+  const validatePassword = (value) => {
+    if (!value) return { isValid: false, message: 'Password is required' };
+    if (value.length < 8) return { isValid: false, message: 'Password must be at least 8 characters' };
+    
+    const hasUpperCase = /[A-Z]/.test(value);
+    const hasLowerCase = /[a-z]/.test(value);
+    const hasNumbers = /\d/.test(value);
+    const hasSpecialChar = /[@$!%*?&]/.test(value);
+    
+    if (!hasUpperCase || !hasLowerCase || !hasNumbers || !hasSpecialChar) {
+      return { isValid: false, message: 'Password must contain uppercase, lowercase, number, and special character' };
+    }
+    return { isValid: true, message: 'Password is strong!' };
+  };
+
+  const validateConfirmPassword = (value) => {
+    if (!value) return { isValid: false, message: 'Please confirm your password' };
+    if (value !== formData.password) return { isValid: false, message: 'Passwords do not match' };
+    return { isValid: true, message: 'Passwords match!' };
+  };
+
+  const validateAddressField = (field, value) => {
+    if (!value) return { isValid: false, message: `${field} is required` };
+    if (value.length < 2) return { isValid: false, message: `${field} must be at least 2 characters` };
+    return { isValid: true, message: `${field} looks good!` };
+  };
+
+  const validatePostalCode = (value) => {
+    if (!value) return { isValid: false, message: 'Postal code is required' };
+    if (!/^\d{5}$/.test(value)) return { isValid: false, message: 'Postal code must be exactly 5 digits' };
+    return { isValid: true, message: 'Postal code is valid!' };
+  };
+
+  // Password strength indicator
+  const getPasswordStrength = (password) => {
+    if (!password) return { strength: 0, label: '', color: '' };
+    
+    let strength = 0;
+    if (password.length >= 8) strength++;
+    if (/[A-Z]/.test(password)) strength++;
+    if (/[a-z]/.test(password)) strength++;
+    if (/\d/.test(password)) strength++;
+    if (/[@$!%*?&]/.test(password)) strength++;
+    
+    const strengthLabels = ['Very Weak', 'Weak', 'Fair', 'Good', 'Strong'];
+    const strengthColors = ['bg-red-500', 'bg-orange-500', 'bg-yellow-500', 'bg-blue-500', 'bg-green-500'];
+    
+    return {
+      strength: strength,
+      label: strengthLabels[strength - 1] || '',
+      color: strengthColors[strength - 1] || ''
+    };
+  };
 
   const onSubmit = async (data) => {
     const { confirmPassword, ...userData } = data;
@@ -122,11 +326,26 @@ const Register = () => {
                     {...register('name')}
                     type="text"
                     className={`mt-1 appearance-none block w-full px-3 py-2 border rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-sm ${
-                      errors.name ? 'border-red-500' : 'border-gray-300'
+                      errors.name ? 'border-red-500' : 
+                      formData.name && validateName(formData.name).isValid ? 'border-green-500' : 'border-gray-300'
                     }`}
                     placeholder="e.g., John Doe"
                   />
-                  {errors.name && (
+                  {formData.name && (
+                    <div className="mt-1 flex items-center">
+                      {validateName(formData.name).isValid ? (
+                        <FaCheck className="h-4 w-4 text-green-500 mr-1" />
+                      ) : (
+                        <FaTimes className="h-4 w-4 text-red-500 mr-1" />
+                      )}
+                      <p className={`text-sm ${
+                        validateName(formData.name).isValid ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        {validateName(formData.name).message}
+                      </p>
+                    </div>
+                  )}
+                  {errors.name && !formData.name && (
                     <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>
                   )}
                 </div>
@@ -139,11 +358,26 @@ const Register = () => {
                     {...register('email')}
                     type="email"
                     className={`mt-1 appearance-none block w-full px-3 py-2 border rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-sm ${
-                      errors.email ? 'border-red-500' : 'border-gray-300'
+                      errors.email ? 'border-red-500' : 
+                      formData.email && validateEmail(formData.email).isValid ? 'border-green-500' : 'border-gray-300'
                     }`}
                     placeholder="john.doe@example.com"
                   />
-                  {errors.email && (
+                  {formData.email && (
+                    <div className="mt-1 flex items-center">
+                      {validateEmail(formData.email).isValid ? (
+                        <FaCheck className="h-4 w-4 text-green-500 mr-1" />
+                      ) : (
+                        <FaTimes className="h-4 w-4 text-red-500 mr-1" />
+                      )}
+                      <p className={`text-sm ${
+                        validateEmail(formData.email).isValid ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        {validateEmail(formData.email).message}
+                      </p>
+                    </div>
+                  )}
+                  {errors.email && !formData.email && (
                     <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
                   )}
                 </div>
@@ -155,12 +389,72 @@ const Register = () => {
                   <input
                     {...register('nic')}
                     type="text"
+                    maxLength={12}
+                    onKeyDown={(e) => {
+                      // Always allow backspace, delete, arrow keys, etc.
+                      if (['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab'].includes(e.key)) {
+                        return;
+                      }
+                      
+                      // Block letters for first 9 characters
+                      if (e.target.value.length < 9 && /[a-zA-Z]/.test(e.key)) {
+                        e.preventDefault();
+                        return;
+                      }
+                      
+                      // For 10th character, allow V/X or digits
+                      if (e.target.value.length === 9) {
+                        if (!/[VXvx0-9]/.test(e.key)) {
+                          e.preventDefault();
+                        }
+                        return;
+                      }
+                      
+                      // For positions 10-12, only allow digits
+                      if (e.target.value.length >= 10 && e.target.value.length < 12) {
+                        if (!/[0-9]/.test(e.key)) {
+                          e.preventDefault();
+                        }
+                        return;
+                      }
+                      
+                      // Block any input beyond 12 characters
+                      if (e.target.value.length >= 12) {
+                        e.preventDefault();
+                      }
+                    }}
+                    onChange={(e) => {
+                      let value = e.target.value;
+                      
+                      // Convert to uppercase for V/X
+                      if (value.length === 10 && /[vx]/.test(value.charAt(9))) {
+                        value = value.substring(0, 9) + value.charAt(9).toUpperCase();
+                      }
+                      
+                      // Update the form value
+                      setValue('nic', value);
+                    }}
                     className={`mt-1 appearance-none block w-full px-3 py-2 border rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-sm ${
-                      errors.nic ? 'border-red-500' : 'border-gray-300'
+                      errors.nic ? 'border-red-500' : 
+                      formData.nic && validateNIC(formData.nic).isValid ? 'border-green-500' : 'border-gray-300'
                     }`}
                     placeholder="e.g., 199012345678 or 901234567V"
                   />
-                  {errors.nic && (
+                  {formData.nic && (
+                    <div className="mt-1 flex items-center">
+                      {validateNIC(formData.nic).isValid ? (
+                        <FaCheck className="h-4 w-4 text-green-500 mr-1" />
+                      ) : (
+                        <FaTimes className="h-4 w-4 text-red-500 mr-1" />
+                      )}
+                      <p className={`text-sm ${
+                        validateNIC(formData.nic).isValid ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        {validateNIC(formData.nic).message}
+                      </p>
+                    </div>
+                  )}
+                  {errors.nic && !formData.nic && (
                     <p className="mt-1 text-sm text-red-600">{errors.nic.message}</p>
                   )}
                 </div>
@@ -183,12 +477,27 @@ const Register = () => {
                       {...register('phone')}
                       type="tel"
                       className={`flex-1 px-3 py-2 border rounded-r-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-sm ${
-                        errors.phone ? 'border-red-500' : 'border-gray-300'
+                        errors.phone ? 'border-red-500' : 
+                        formData.phone && validatePhone(formData.phone).isValid ? 'border-green-500' : 'border-gray-300'
                       }`}
                       placeholder="077 123 4567"
                     />
                   </div>
-                  {errors.phone && (
+                  {formData.phone && (
+                    <div className="mt-1 flex items-center">
+                      {validatePhone(formData.phone).isValid ? (
+                        <FaCheck className="h-4 w-4 text-green-500 mr-1" />
+                      ) : (
+                        <FaTimes className="h-4 w-4 text-red-500 mr-1" />
+                      )}
+                      <p className={`text-sm ${
+                        validatePhone(formData.phone).isValid ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        {validatePhone(formData.phone).message}
+                      </p>
+                    </div>
+                  )}
+                  {errors.phone && !formData.phone && (
                     <p className="mt-1 text-sm text-red-600">{errors.phone.message}</p>
                   )}
                 </div>
@@ -204,11 +513,26 @@ const Register = () => {
                         {...register('address.street')}
                         type="text"
                         className={`mt-1 appearance-none block w-full px-3 py-2 border rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-sm ${
-                          errors.address?.street ? 'border-red-500' : 'border-gray-300'
+                          errors.address?.street ? 'border-red-500' : 
+                          formData.address?.street && validateAddressField('Street', formData.address.street).isValid ? 'border-green-500' : 'border-gray-300'
                         }`}
                         placeholder="123 Main Street"
                       />
-                      {errors.address?.street && (
+                      {formData.address?.street && (
+                        <div className="mt-1 flex items-center">
+                          {validateAddressField('Street', formData.address.street).isValid ? (
+                            <FaCheck className="h-4 w-4 text-green-500 mr-1" />
+                          ) : (
+                            <FaTimes className="h-4 w-4 text-red-500 mr-1" />
+                          )}
+                          <p className={`text-sm ${
+                            validateAddressField('Street', formData.address.street).isValid ? 'text-green-600' : 'text-red-600'
+                          }`}>
+                            {validateAddressField('Street', formData.address.street).message}
+                          </p>
+                        </div>
+                      )}
+                      {errors.address?.street && !formData.address?.street && (
                         <p className="mt-1 text-sm text-red-600">{errors.address.street.message}</p>
                       )}
                     </div>
@@ -222,11 +546,26 @@ const Register = () => {
                           {...register('address.city')}
                           type="text"
                           className={`mt-1 appearance-none block w-full px-3 py-2 border rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-sm ${
-                            errors.address?.city ? 'border-red-500' : 'border-gray-300'
+                            errors.address?.city ? 'border-red-500' : 
+                            formData.address?.city && validateAddressField('City', formData.address.city).isValid ? 'border-green-500' : 'border-gray-300'
                           }`}
                           placeholder="Colombo"
                         />
-                        {errors.address?.city && (
+                        {formData.address?.city && (
+                          <div className="mt-1 flex items-center">
+                            {validateAddressField('City', formData.address.city).isValid ? (
+                              <FaCheck className="h-4 w-4 text-green-500 mr-1" />
+                            ) : (
+                              <FaTimes className="h-4 w-4 text-red-500 mr-1" />
+                            )}
+                            <p className={`text-sm ${
+                              validateAddressField('City', formData.address.city).isValid ? 'text-green-600' : 'text-red-600'
+                            }`}>
+                              {validateAddressField('City', formData.address.city).message}
+                            </p>
+                          </div>
+                        )}
+                        {errors.address?.city && !formData.address?.city && (
                           <p className="mt-1 text-sm text-red-600">{errors.address.city.message}</p>
                         )}
                       </div>
@@ -239,11 +578,26 @@ const Register = () => {
                           {...register('address.district')}
                           type="text"
                           className={`mt-1 appearance-none block w-full px-3 py-2 border rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-sm ${
-                            errors.address?.district ? 'border-red-500' : 'border-gray-300'
+                            errors.address?.district ? 'border-red-500' : 
+                            formData.address?.district && validateAddressField('District', formData.address.district).isValid ? 'border-green-500' : 'border-gray-300'
                           }`}
                           placeholder="Western Province"
                         />
-                        {errors.address?.district && (
+                        {formData.address?.district && (
+                          <div className="mt-1 flex items-center">
+                            {validateAddressField('District', formData.address.district).isValid ? (
+                              <FaCheck className="h-4 w-4 text-green-500 mr-1" />
+                            ) : (
+                              <FaTimes className="h-4 w-4 text-red-500 mr-1" />
+                            )}
+                            <p className={`text-sm ${
+                              validateAddressField('District', formData.address.district).isValid ? 'text-green-600' : 'text-red-600'
+                            }`}>
+                              {validateAddressField('District', formData.address.district).message}
+                            </p>
+                          </div>
+                        )}
+                        {errors.address?.district && !formData.address?.district && (
                           <p className="mt-1 text-sm text-red-600">{errors.address.district.message}</p>
                         )}
                       </div>
@@ -256,11 +610,26 @@ const Register = () => {
                           {...register('address.postalCode')}
                           type="text"
                           className={`mt-1 appearance-none block w-full px-3 py-2 border rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-sm ${
-                            errors.address?.postalCode ? 'border-red-500' : 'border-gray-300'
+                            errors.address?.postalCode ? 'border-red-500' : 
+                            formData.address?.postalCode && validatePostalCode(formData.address.postalCode).isValid ? 'border-green-500' : 'border-gray-300'
                           }`}
                           placeholder="00100"
                         />
-                        {errors.address?.postalCode && (
+                        {formData.address?.postalCode && (
+                          <div className="mt-1 flex items-center">
+                            {validatePostalCode(formData.address.postalCode).isValid ? (
+                              <FaCheck className="h-4 w-4 text-green-500 mr-1" />
+                            ) : (
+                              <FaTimes className="h-4 w-4 text-red-500 mr-1" />
+                            )}
+                            <p className={`text-sm ${
+                              validatePostalCode(formData.address.postalCode).isValid ? 'text-green-600' : 'text-red-600'
+                            }`}>
+                              {validatePostalCode(formData.address.postalCode).message}
+                            </p>
+                          </div>
+                        )}
+                        {errors.address?.postalCode && !formData.address?.postalCode && (
                           <p className="mt-1 text-sm text-red-600">{errors.address.postalCode.message}</p>
                         )}
                       </div>
@@ -283,7 +652,8 @@ const Register = () => {
                       {...register('password')}
                       type={showPassword ? 'text' : 'password'}
                       className={`appearance-none block w-full px-3 py-2 pr-10 border rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-sm ${
-                        errors.password ? 'border-red-500' : 'border-gray-300'
+                        errors.password ? 'border-red-500' : 
+                        formData.password && validatePassword(formData.password).isValid ? 'border-green-500' : 'border-gray-300'
                       }`}
                       placeholder="Create a strong password"
                     />
@@ -299,7 +669,101 @@ const Register = () => {
                       )}
                     </button>
                   </div>
-                  {errors.password && (
+                  
+                  {/* Password Strength Indicator */}
+                  {formData.password && (
+                    <div className="mt-2">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm text-gray-600">Password Strength:</span>
+                        <span className={`text-sm font-medium ${
+                          getPasswordStrength(formData.password).strength >= 4 ? 'text-green-600' : 
+                          getPasswordStrength(formData.password).strength >= 3 ? 'text-blue-600' :
+                          getPasswordStrength(formData.password).strength >= 2 ? 'text-yellow-600' :
+                          getPasswordStrength(formData.password).strength >= 1 ? 'text-orange-600' : 'text-red-600'
+                        }`}>
+                          {getPasswordStrength(formData.password).label}
+                        </span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div 
+                          className={`h-2 rounded-full transition-all duration-300 ${
+                            getPasswordStrength(formData.password).color
+                          }`}
+                          style={{ width: `${(getPasswordStrength(formData.password).strength / 5) * 100}%` }}
+                        ></div>
+                      </div>
+                      
+                      {/* Password Requirements */}
+                      <div className="mt-2 space-y-1">
+                        <div className={`flex items-center text-sm ${
+                          formData.password.length >= 8 ? 'text-green-600' : 'text-gray-500'
+                        }`}>
+                          {formData.password.length >= 8 ? (
+                            <FaCheck className="h-3 w-3 mr-2" />
+                          ) : (
+                            <FaTimes className="h-3 w-3 mr-2" />
+                          )}
+                          At least 8 characters
+                        </div>
+                        <div className={`flex items-center text-sm ${
+                          /[A-Z]/.test(formData.password) ? 'text-green-600' : 'text-gray-500'
+                        }`}>
+                          {/[A-Z]/.test(formData.password) ? (
+                            <FaCheck className="h-3 w-3 mr-2" />
+                          ) : (
+                            <FaTimes className="h-3 w-3 mr-2" />
+                          )}
+                          One uppercase letter
+                        </div>
+                        <div className={`flex items-center text-sm ${
+                          /[a-z]/.test(formData.password) ? 'text-green-600' : 'text-gray-500'
+                        }`}>
+                          {/[a-z]/.test(formData.password) ? (
+                            <FaCheck className="h-3 w-3 mr-2" />
+                          ) : (
+                            <FaTimes className="h-3 w-3 mr-2" />
+                          )}
+                          One lowercase letter
+                        </div>
+                        <div className={`flex items-center text-sm ${
+                          /\d/.test(formData.password) ? 'text-green-600' : 'text-gray-500'
+                        }`}>
+                          {/\d/.test(formData.password) ? (
+                            <FaCheck className="h-3 w-3 mr-2" />
+                          ) : (
+                            <FaTimes className="h-3 w-3 mr-2" />
+                          )}
+                          One number
+                        </div>
+                        <div className={`flex items-center text-sm ${
+                          /[@$!%*?&]/.test(formData.password) ? 'text-green-600' : 'text-gray-500'
+                        }`}>
+                          {/[@$!%*?&]/.test(formData.password) ? (
+                            <FaCheck className="h-3 w-3 mr-2" />
+                          ) : (
+                            <FaTimes className="h-3 w-3 mr-2" />
+                          )}
+                          One special character (@$!%*?&)
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {formData.password && (
+                    <div className="mt-1 flex items-center">
+                      {validatePassword(formData.password).isValid ? (
+                        <FaCheck className="h-4 w-4 text-green-500 mr-1" />
+                      ) : (
+                        <FaTimes className="h-4 w-4 text-red-500 mr-1" />
+                      )}
+                      <p className={`text-sm ${
+                        validatePassword(formData.password).isValid ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        {validatePassword(formData.password).message}
+                      </p>
+                    </div>
+                  )}
+                  {errors.password && !formData.password && (
                     <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
                   )}
                 </div>
@@ -313,7 +777,8 @@ const Register = () => {
                       {...register('confirmPassword')}
                       type={showConfirmPassword ? 'text' : 'password'}
                       className={`appearance-none block w-full px-3 py-2 pr-10 border rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-sm ${
-                        errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
+                        errors.confirmPassword ? 'border-red-500' : 
+                        formData.confirmPassword && validateConfirmPassword(formData.confirmPassword).isValid ? 'border-green-500' : 'border-gray-300'
                       }`}
                       placeholder="Confirm your password"
                     />
@@ -329,7 +794,21 @@ const Register = () => {
                       )}
                     </button>
                   </div>
-                  {errors.confirmPassword && (
+                  {formData.confirmPassword && (
+                    <div className="mt-1 flex items-center">
+                      {validateConfirmPassword(formData.confirmPassword).isValid ? (
+                        <FaCheck className="h-4 w-4 text-green-500 mr-1" />
+                      ) : (
+                        <FaTimes className="h-4 w-4 text-red-500 mr-1" />
+                      )}
+                      <p className={`text-sm ${
+                        validateConfirmPassword(formData.confirmPassword).isValid ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        {validateConfirmPassword(formData.confirmPassword).message}
+                      </p>
+                    </div>
+                  )}
+                  {errors.confirmPassword && !formData.confirmPassword && (
                     <p className="mt-1 text-sm text-red-600">{errors.confirmPassword.message}</p>
                   )}
                 </div>

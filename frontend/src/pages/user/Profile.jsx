@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { FaUser, FaEdit, FaSave, FaTimes } from 'react-icons/fa';
+import { FaUser, FaEnvelope, FaPhone, FaMapMarkerAlt, FaEdit, FaSave, FaTimes } from 'react-icons/fa';
 
 const Profile = () => {
   const { user } = useAuth();
@@ -9,34 +9,20 @@ const Profile = () => {
     name: user?.name || '',
     email: user?.email || '',
     phone: user?.phone || '',
-    address: user?.address || {
-      street: '',
-      city: '',
-      district: '',
-      postalCode: ''
-    }
+    address: user?.address || ''
   });
 
-  const handleInputChange = (field, value) => {
-    if (field.includes('.')) {
-      const [parent, child] = field.split('.');
-      setFormData(prev => ({
-        ...prev,
-        [parent]: {
-          ...prev[parent],
-          [child]: value
-        }
-      }));
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        [field]: value
-      }));
-    }
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
 
   const handleSave = () => {
-    // Save logic here
+    // TODO: Implement profile update API call
+    console.log('Saving profile:', formData);
     setIsEditing(false);
   };
 
@@ -45,53 +31,19 @@ const Profile = () => {
       name: user?.name || '',
       email: user?.email || '',
       phone: user?.phone || '',
-      address: user?.address || {
-        street: '',
-        city: '',
-        district: '',
-        postalCode: ''
-      }
+      address: user?.address || ''
     });
     setIsEditing(false);
   };
 
-  if (!user) {
-    return <div>Loading...</div>;
-  }
-
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-white rounded-lg shadow-md p-8">
-          <div className="flex items-center justify-between mb-8">
-            <div className="flex items-center space-x-4">
-              <div className="text-4xl text-teal-600">
-                <FaUser />
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900">My Profile</h1>
-                <p className="text-gray-600">View and update your personal information</p>
-              </div>
-            </div>
-            <div className="flex space-x-2">
-              {isEditing ? (
-                <>
-                  <button
-                    onClick={handleSave}
-                    className="flex items-center px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors"
-                  >
-                    <FaSave className="mr-2" />
-                    Save Changes
-                  </button>
-                  <button
-                    onClick={handleCancel}
-                    className="flex items-center px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                  >
-                    <FaTimes className="mr-2" />
-                    Cancel
-                  </button>
-                </>
-              ) : (
+        <div className="bg-white shadow rounded-lg">
+          <div className="px-6 py-8">
+            <div className="flex items-center justify-between mb-8">
+              <h1 className="text-3xl font-bold text-gray-900">Profile</h1>
+              {!isEditing ? (
                 <button
                   onClick={() => setIsEditing(true)}
                   className="flex items-center px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors"
@@ -99,130 +51,135 @@ const Profile = () => {
                   <FaEdit className="mr-2" />
                   Edit Profile
                 </button>
+              ) : (
+                <div className="flex space-x-2">
+                  <button
+                    onClick={handleSave}
+                    className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                  >
+                    <FaSave className="mr-2" />
+                    Save
+                  </button>
+                  <button
+                    onClick={handleCancel}
+                    className="flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                  >
+                    <FaTimes className="mr-2" />
+                    Cancel
+                  </button>
+                </div>
               )}
             </div>
-          </div>
 
-          <div className="space-y-8">
-            {/* Personal Information */}
-            <div>
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Personal Information</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {/* Profile Information */}
+              <div className="space-y-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
-                  <input
-                    type="text"
-                    value={formData.name}
-                    onChange={(e) => handleInputChange('name', e.target.value)}
-                    disabled={!isEditing}
-                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-teal-500 focus:border-teal-500 ${
-                      isEditing ? 'border-gray-300' : 'border-gray-200 bg-gray-50'
-                    }`}
-                  />
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <FaUser className="inline mr-2" />
+                    Full Name
+                  </label>
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      name="name"
+                      value={formData.name}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                    />
+                  ) : (
+                    <p className="text-lg text-gray-900">{user?.name || 'Not provided'}</p>
+                  )}
                 </div>
+
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
-                  <input
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => handleInputChange('email', e.target.value)}
-                    disabled={!isEditing}
-                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-teal-500 focus:border-teal-500 ${
-                      isEditing ? 'border-gray-300' : 'border-gray-200 bg-gray-50'
-                    }`}
-                  />
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <FaEnvelope className="inline mr-2" />
+                    Email
+                  </label>
+                  {isEditing ? (
+                    <input
+                      type="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                    />
+                  ) : (
+                    <p className="text-lg text-gray-900">{user?.email || 'Not provided'}</p>
+                  )}
                 </div>
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Phone</label>
-                  <input
-                    type="tel"
-                    value={formData.phone}
-                    onChange={(e) => handleInputChange('phone', e.target.value)}
-                    disabled={!isEditing}
-                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-teal-500 focus:border-teal-500 ${
-                      isEditing ? 'border-gray-300' : 'border-gray-200 bg-gray-50'
-                    }`}
-                  />
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <FaPhone className="inline mr-2" />
+                    Phone
+                  </label>
+                  {isEditing ? (
+                    <input
+                      type="tel"
+                      name="phone"
+                      value={formData.phone}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                    />
+                  ) : (
+                    <p className="text-lg text-gray-900">{user?.phone || 'Not provided'}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <FaMapMarkerAlt className="inline mr-2" />
+                    Address
+                  </label>
+                  {isEditing ? (
+                    <textarea
+                      name="address"
+                      value={formData.address}
+                      onChange={handleInputChange}
+                      rows={3}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                    />
+                  ) : (
+                    <p className="text-lg text-gray-900">{user?.address || 'Not provided'}</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Account Information */}
+              <div className="space-y-6">
+                <div className="bg-gray-50 p-6 rounded-lg">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Account Information</h3>
+                  <div className="space-y-3">
+                    <div>
+                      <span className="text-sm font-medium text-gray-500">Role:</span>
+                      <p className="text-lg text-gray-900 capitalize">{user?.role || 'Customer'}</p>
+                    </div>
+                    <div>
+                      <span className="text-sm font-medium text-gray-500">Member Since:</span>
+                      <p className="text-lg text-gray-900">
+                        {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'Unknown'}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-sm font-medium text-gray-500">Account Status:</span>
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        Active
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Change Password Section */}
+                <div className="bg-gray-50 p-6 rounded-lg">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Security</h3>
+                  <button className="w-full px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+                    Change Password
+                  </button>
                 </div>
               </div>
             </div>
-
-            {/* Address Information */}
-            <div>
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Address Information</h2>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Street Address</label>
-                  <input
-                    type="text"
-                    value={formData.address.street}
-                    onChange={(e) => handleInputChange('address.street', e.target.value)}
-                    disabled={!isEditing}
-                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-teal-500 focus:border-teal-500 ${
-                      isEditing ? 'border-gray-300' : 'border-gray-200 bg-gray-50'
-                    }`}
-                  />
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">City</label>
-                    <input
-                      type="text"
-                      value={formData.address.city}
-                      onChange={(e) => handleInputChange('address.city', e.target.value)}
-                      disabled={!isEditing}
-                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-teal-500 focus:border-teal-500 ${
-                        isEditing ? 'border-gray-300' : 'border-gray-200 bg-gray-50'
-                      }`}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">District</label>
-                    <input
-                      type="text"
-                      value={formData.address.district}
-                      onChange={(e) => handleInputChange('address.district', e.target.value)}
-                      disabled={!isEditing}
-                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-teal-500 focus:border-teal-500 ${
-                        isEditing ? 'border-gray-300' : 'border-gray-200 bg-gray-50'
-                      }`}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Postal Code</label>
-                    <input
-                      type="text"
-                      value={formData.address.postalCode}
-                      onChange={(e) => handleInputChange('address.postalCode', e.target.value)}
-                      disabled={!isEditing}
-                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-teal-500 focus:border-teal-500 ${
-                        isEditing ? 'border-gray-300' : 'border-gray-200 bg-gray-50'
-                      }`}
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Bottom Action Buttons */}
-            {isEditing && (
-              <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
-                <button
-                  onClick={handleSave}
-                  className="flex items-center px-6 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors"
-                >
-                  <FaSave className="mr-2" />
-                  Save Changes
-                </button>
-                <button
-                  onClick={handleCancel}
-                  className="flex items-center px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  <FaTimes className="mr-2" />
-                  Cancel
-                </button>
-              </div>
-            )}
           </div>
         </div>
       </div>

@@ -15,10 +15,11 @@ const envConfig = {
   JWT_SECRET: 'your-super-secret-jwt-key-change-this-in-production',
   JWT_EXPIRES_IN: '7d',
   
-  // Email Configuration (optional - for notifications later)
+  // Email Configuration (for password reset)
   EMAIL_HOST: 'smtp.gmail.com',
-  EMAIL_USER: 'your-email@gmail.com',
-  EMAIL_PASS: 'your-app-password',
+  EMAIL_PORT: 587,
+  EMAIL_USERNAME: 'your-email@gmail.com',
+  EMAIL_PASSWORD: 'your-app-password',
   EMAIL_FROM: 'noreply@boatservice.com',
   
   // File Upload Configuration (for later use)

@@ -8,6 +8,8 @@ dotenv.config();
 
 import userRoutes from './routes/userRoutes.js';
 import boatRepairRoutes from './routes/boatRepairRoutes.js';
+import authRoutes from './routes/authRoutes.js';
+import boatRideRoutes from './routes/boatRideRoutes.js';
 
 
 
@@ -59,6 +61,12 @@ app.use('/api/users', userRoutes );
 
 // boat repair routes
 app.use('/api/boat-repairs', boatRepairRoutes);
+
+// auth routes (password reset, etc.)
+app.use('/api/auth', authRoutes);
+
+// boat ride routes
+app.use('/api/boat-rides', boatRideRoutes);
 
 
 // Global error handling middleware

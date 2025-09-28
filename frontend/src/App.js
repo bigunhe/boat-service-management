@@ -7,6 +7,12 @@ import { AuthProvider } from './context/AuthContext';
 import Home from './common/Home';
 import NotFound from './common/NotFound';
 
+// Public Pages
+import AboutUs from './pages/public/AboutUs';
+import Services from './pages/public/Services';
+import ContactUs from './pages/public/ContactUs';
+import ServiceInfo from './pages/public/ServiceInfo';
+
 // User Pages
 import Login from './pages/user/Login';
 import Register from './pages/user/Register';
@@ -17,8 +23,14 @@ import MyRepairs from './pages/user/MyRepairs';
 import RepairDetails from './pages/user/RepairDetails';
 import ServiceHistory from './pages/user/ServiceHistory';
 
+// Auth Pages
+import ForgotPassword from './pages/auth/ForgotPassword';
+import ResetPassword from './pages/auth/ResetPassword';
+
 // Function Pages
 import BoatRideBooking from './pages/rideBooking/BoatRideBooking';
+import RideConfirmation from './pages/rideBooking/RideConfirmation';
+import MyRides from './pages/rideBooking/MyRides';
 import RepairService from './pages/repairService/RepairService';
 import BoatPurchase from './pages/purchaseVisit/BoatPurchase';
 import BookingConfirmation from './pages/repairService/BookingConfirmation';
@@ -38,10 +50,13 @@ import CustomerSupport from './common/CustomerSupport';
 import CreateEmployee from './pages/admin/CreateEmployee';
 import UserManagementList from './pages/admin/UserManagementList';
 import UserDetails from './pages/admin/UserDetails';
+import AdminProfile from './pages/admin/AdminProfile';
+
 
 // Components
 import ProtectedRoute from './components/common/ProtectedRoute';
 import Navbar from './components/common/Navbar';
+import Footer from './components/common/Footer';
 
 function App() {
   return (
@@ -49,18 +64,26 @@ function App() {
       <Router>
         <div className="min-h-screen bg-gray-50">
           <Navbar />
-          <main>
+          <main className="flex-1">
             <Routes>
               {/* Public Routes */}
               <Route path="/" element={<Home />} />
+              <Route path="/about" element={<AboutUs />} />
+              <Route path="/services" element={<Services />} />
+              <Route path="/contact" element={<ContactUs />} />
+              <Route path="/service-info/:serviceType" element={<ServiceInfo />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
               
               {/* Protected Routes */}
               <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
               
               {/* Customer Routes */}
               <Route path="/boat-rides" element={<ProtectedRoute><BoatRideBooking /></ProtectedRoute>} />
+              <Route path="/ride-confirmation/:id" element={<ProtectedRoute><RideConfirmation /></ProtectedRoute>} />
+              <Route path="/my-rides" element={<ProtectedRoute><MyRides /></ProtectedRoute>} />
               <Route path="/repair-service" element={<ProtectedRoute><RepairService /></ProtectedRoute>} />
               <Route path="/repair-service/edit/:id" element={<ProtectedRoute><RepairService /></ProtectedRoute>} />
               <Route path="/boat-purchase" element={<ProtectedRoute><BoatPurchase /></ProtectedRoute>} />
@@ -87,11 +110,14 @@ function App() {
               <Route path="/admin/users" element={<ProtectedRoute requiredRole="admin"><UserManagementList /></ProtectedRoute>} />
               <Route path="/admin/users/:id" element={<ProtectedRoute requiredRole="admin"><UserDetails /></ProtectedRoute>} />
               <Route path="/admin/users/:id/edit" element={<ProtectedRoute requiredRole="admin"><UserDetails /></ProtectedRoute>} />
+              <Route path="/admin/profile" element={<ProtectedRoute requiredRole="admin"><AdminProfile /></ProtectedRoute>} />
+              
               
               {/* 404 Route */}
               <Route path="*" element={<NotFound />} />
             </Routes>
           </main>
+          <Footer />
           <Toaster 
             position="top-right"
             toastOptions={{

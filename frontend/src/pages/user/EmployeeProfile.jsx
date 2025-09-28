@@ -1,26 +1,61 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FaUser, FaEdit, FaSave, FaTimes } from 'react-icons/fa';
+import ChangePassword from '../../components/ChangePassword';
+import { useAuth } from '../../context/AuthContext';
+import toast from 'react-hot-toast';
 
 const EmployeeProfile = () => {
+  const { user, updateUser } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
-    name: 'John Smith',
-    email: 'john.smith@boatservice.com',
-    phone: '+94 77 123 4567',
-    nic: '199012345678',
+    name: '',
+    email: '',
+    phone: '',
+    nic: '',
     address: {
-      street: '123 Employee Street',
-      city: 'Colombo',
-      district: 'Western Province',
-      postalCode: '00100'
+      street: '',
+      city: '',
+      district: '',
+      postalCode: ''
     },
-    employeeId: 'EMP001',
-    position: 'Senior Technician',
-    hireDate: '2020-01-15',
-    dateOfBirth: '1990-05-20',
-    emergencyContact: '+94 77 987 6543',
+    employeeId: '',
+    position: '',
+    hireDate: '',
+    dateOfBirth: '',
+    emergencyContact: {
+      name: '',
+      phone: '',
+      relationship: ''
+    },
     status: 'Active'
   });
+
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        name: user.name || '',
+        email: user.email || '',
+        phone: user.phone || '',
+        nic: user.nic || '',
+        address: user.address || {
+          street: '',
+          city: '',
+          district: '',
+          postalCode: ''
+        },
+        employeeId: user.employeeData?.employeeId || '',
+        position: user.employeeData?.position || '',
+        hireDate: user.employeeData?.hireDate || '',
+        dateOfBirth: user.employeeData?.dateOfBirth || '',
+        emergencyContact: user.employeeData?.emergencyContact || {
+          name: '',
+          phone: '',
+          relationship: ''
+        },
+        status: user.isActive ? 'Active' : 'Inactive'
+      });
+    }
+  }, [user]);
 
   const handleInputChange = (field, value) => {
     if (field.includes('.')) {
@@ -40,12 +75,68 @@ const EmployeeProfile = () => {
     }
   };
 
-  const handleSave = () => {
-    // Save logic here
-    setIsEditing(false);
+  const handleSave = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        toast.error('Authentication token not found. Please login again.');
+        return;
+      }
+
+      if (!user || !user._id) {
+        toast.error('User information not available. Please refresh the page.');
+        return;
+      }
+
+      const response = await fetch(`http://localhost:5001/api/users/${user._id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(formData)
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast.success('Profile updated successfully!');
+        setIsEditing(false);
+        // Update the user context with new data
+        const updatedUser = { ...user, ...formData };
+        updateUser(updatedUser);
+      } else {
+        toast.error(data.message || 'Failed to update profile');
+      }
+    } catch (error) {
+      console.error('Update profile error:', error);
+      toast.error('Network error. Please try again.');
+    }
   };
 
   const handleCancel = () => {
+    setFormData({
+      name: user?.name || '',
+      email: user?.email || '',
+      phone: user?.phone || '',
+      nic: user?.nic || '',
+      address: user?.address || {
+        street: '',
+        city: '',
+        district: '',
+        postalCode: ''
+      },
+      employeeId: user?.employeeData?.employeeId || '',
+      position: user?.employeeData?.position || '',
+      hireDate: user?.employeeData?.hireDate || '',
+      dateOfBirth: user?.employeeData?.dateOfBirth || '',
+      emergencyContact: user?.employeeData?.emergencyContact || {
+        name: '',
+        phone: '',
+        relationship: ''
+      },
+      status: user?.isActive ? 'Active' : 'Inactive'
+    });
     setIsEditing(false);
   };
 
@@ -287,6 +378,11 @@ const EmployeeProfile = () => {
               </div>
             )}
           </div>
+        </div>
+        
+        {/* Change Password Section */}
+        <div className="mt-8">
+          <ChangePassword />
         </div>
       </div>
     </div>

@@ -27,6 +27,8 @@ pids
 # Build directories
 /build
 /dist
+frontend/build/
+frontend/dist/
 .next/
 out/
 
