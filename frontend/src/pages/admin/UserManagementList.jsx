@@ -13,7 +13,8 @@ import {
   FaPhone,
   FaEnvelope,
   FaCalendarAlt,
-  FaIdCard
+  FaIdCard,
+  FaArrowLeft
 } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 
@@ -160,6 +161,15 @@ const UserManagementList = () => {
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <div>
+              <div className="flex items-center gap-4 mb-2">
+                <button
+                  onClick={() => navigate('/dashboard')}
+                  className="flex items-center gap-2 text-gray-600 hover:text-teal-600 transition-colors"
+                >
+                  <FaArrowLeft className="w-4 h-4" />
+                  Back to Dashboard
+                </button>
+              </div>
               <h1 className="text-3xl font-bold text-gray-900">User Management</h1>
               <p className="text-gray-600 mt-2">Manage customers and employees</p>
             </div>
@@ -304,6 +314,12 @@ const UserManagementList = () => {
                               <FaIdCard className="w-3 h-3 flex-shrink-0" />
                               <span className="truncate">{user.nic}</span>
                             </div>
+                            {activeTab === 'employees' && user.employeeData?.employeeId && (
+                              <div className="text-xs text-blue-600 flex items-center gap-1 mt-1">
+                                <FaUserTie className="w-3 h-3 flex-shrink-0" />
+                                <span className="truncate font-mono">{user.employeeData.employeeId}</span>
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>

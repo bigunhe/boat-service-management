@@ -7,6 +7,14 @@ import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
 import { FaEye, FaEyeSlash, FaCheck, FaTimes } from 'react-icons/fa';
 
+const SRI_LANKAN_DISTRICTS = [
+  'Ampara', 'Anuradhapura', 'Badulla', 'Batticaloa', 'Colombo',
+  'Galle', 'Gampaha', 'Hambantota', 'Jaffna', 'Kalutara',
+  'Kandy', 'Kegalle', 'Kilinochchi', 'Kurunegala', 'Mannar',
+  'Matale', 'Matara', 'Moneragala', 'Mullaitivu', 'Nuwara Eliya',
+  'Polonnaruwa', 'Puttalam', 'Ratnapura', 'Trincomalee', 'Vavuniya'
+];
+
 const schema = yup.object({
   name: yup
     .string()
@@ -50,17 +58,23 @@ const schema = yup.object({
   phone: yup
     .string()
     .required('Phone number is required')
-    .test('phone-format', 'Please enter a valid Sri Lankan phone number', (value) => {
+    .test('phone-format', 'Phone number must be exactly 10 digits', (value) => {
       if (!value) return false;
-      // Accepts: 0XXXXXXXXX, +94XXXXXXXXX, or 9 digits without country code
-      const phoneRegex = /^(\+94|0)?[0-9]{9}$/;
-      return phoneRegex.test(value.replace(/\s/g, ''));
+      const phoneRegex = /^[0-9]{10}$/;
+      return phoneRegex.test(value);
     }),
   address: yup.object({
     street: yup.string().required('Street address is required'),
     city: yup.string().required('City is required'),
     district: yup.string().required('District is required'),
-    postalCode: yup.string().required('Postal code is required')
+    postalCode: yup
+      .string()
+      .required('Postal code is required')
+      .test('postal-code-format', 'Postal code must be exactly 5 digits', (value) => {
+        if (!value) return false;
+        const postalCodeRegex = /^[0-9]{5}$/;
+        return postalCodeRegex.test(value);
+      })
   }),
   password: yup
     .string()
@@ -221,9 +235,9 @@ const Register = () => {
 
   const validatePhone = (value) => {
     if (!value) return { isValid: false, message: 'Phone number is required' };
-    const phoneRegex = /^(\+94|0)?[0-9]{9}$/;
-    const cleanPhone = value.replace(/\s/g, '');
-    if (!phoneRegex.test(cleanPhone)) return { isValid: false, message: 'Please enter a valid Sri Lankan phone number' };
+    if (value.length !== 10) return { isValid: false, message: 'Phone number must be exactly 10 digits' };
+    const phoneRegex = /^[0-9]{10}$/;
+    if (!phoneRegex.test(value)) return { isValid: false, message: 'Phone number must contain only digits' };
     return { isValid: true, message: 'Phone number is valid!' };
   };
 
@@ -256,7 +270,9 @@ const Register = () => {
 
   const validatePostalCode = (value) => {
     if (!value) return { isValid: false, message: 'Postal code is required' };
-    if (!/^\d{5}$/.test(value)) return { isValid: false, message: 'Postal code must be exactly 5 digits' };
+    if (value.length !== 5) return { isValid: false, message: 'Postal code must be exactly 5 digits' };
+    const postalCodeRegex = /^[0-9]{5}$/;
+    if (!postalCodeRegex.test(value)) return { isValid: false, message: 'Postal code must contain only digits' };
     return { isValid: true, message: 'Postal code is valid!' };
   };
 
@@ -476,11 +492,23 @@ const Register = () => {
                     <input
                       {...register('phone')}
                       type="tel"
+                      maxLength={10}
+                      onKeyDown={(e) => {
+                        // Allow only digits and control keys
+                        if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab'].includes(e.key)) {
+                          e.preventDefault();
+                        }
+                      }}
+                      onInput={(e) => {
+                        // Remove any non-digit characters and limit to 10 digits
+                        const value = e.target.value.replace(/\D/g, '').slice(0, 10);
+                        e.target.value = value;
+                      }}
                       className={`flex-1 px-3 py-2 border rounded-r-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-sm ${
                         errors.phone ? 'border-red-500' : 
                         formData.phone && validatePhone(formData.phone).isValid ? 'border-green-500' : 'border-gray-300'
                       }`}
-                      placeholder="077 123 4567"
+                      placeholder="0771234567"
                     />
                   </div>
                   {formData.phone && (
@@ -574,30 +602,20 @@ const Register = () => {
                         <label htmlFor="district" className="block text-sm font-medium text-gray-700">
                           District *
                         </label>
-                        <input
+                        <select
                           {...register('address.district')}
-                          type="text"
-                          className={`mt-1 appearance-none block w-full px-3 py-2 border rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-sm ${
-                            errors.address?.district ? 'border-red-500' : 
-                            formData.address?.district && validateAddressField('District', formData.address.district).isValid ? 'border-green-500' : 'border-gray-300'
+                          className={`mt-1 appearance-none block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-sm ${
+                            errors.address?.district ? 'border-red-500' : 'border-gray-300'
                           }`}
-                          placeholder="Western Province"
-                        />
-                        {formData.address?.district && (
-                          <div className="mt-1 flex items-center">
-                            {validateAddressField('District', formData.address.district).isValid ? (
-                              <FaCheck className="h-4 w-4 text-green-500 mr-1" />
-                            ) : (
-                              <FaTimes className="h-4 w-4 text-red-500 mr-1" />
-                            )}
-                            <p className={`text-sm ${
-                              validateAddressField('District', formData.address.district).isValid ? 'text-green-600' : 'text-red-600'
-                            }`}>
-                              {validateAddressField('District', formData.address.district).message}
-                            </p>
-                          </div>
-                        )}
-                        {errors.address?.district && !formData.address?.district && (
+                        >
+                          <option value="">Select District</option>
+                          {SRI_LANKAN_DISTRICTS.map((district) => (
+                            <option key={district} value={district}>
+                              {district}
+                            </option>
+                          ))}
+                        </select>
+                        {errors.address?.district && (
                           <p className="mt-1 text-sm text-red-600">{errors.address.district.message}</p>
                         )}
                       </div>
@@ -609,6 +627,18 @@ const Register = () => {
                         <input
                           {...register('address.postalCode')}
                           type="text"
+                          maxLength={5}
+                          onKeyDown={(e) => {
+                            // Allow only digits and control keys
+                            if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab'].includes(e.key)) {
+                              e.preventDefault();
+                            }
+                          }}
+                          onInput={(e) => {
+                            // Remove any non-digit characters and limit to 5 digits
+                            const value = e.target.value.replace(/\D/g, '').slice(0, 5);
+                            e.target.value = value;
+                          }}
                           className={`mt-1 appearance-none block w-full px-3 py-2 border rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-sm ${
                             errors.address?.postalCode ? 'border-red-500' : 
                             formData.address?.postalCode && validatePostalCode(formData.address.postalCode).isValid ? 'border-green-500' : 'border-gray-300'

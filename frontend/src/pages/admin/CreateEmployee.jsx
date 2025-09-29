@@ -10,6 +10,14 @@ import {
 } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 
+const SRI_LANKAN_DISTRICTS = [
+  'Ampara', 'Anuradhapura', 'Badulla', 'Batticaloa', 'Colombo',
+  'Galle', 'Gampaha', 'Hambantota', 'Jaffna', 'Kalutara',
+  'Kandy', 'Kegalle', 'Kilinochchi', 'Kurunegala', 'Mannar',
+  'Matale', 'Matara', 'Moneragala', 'Mullaitivu', 'Nuwara Eliya',
+  'Polonnaruwa', 'Puttalam', 'Ratnapura', 'Trincomalee', 'Vavuniya'
+];
+
 const CreateEmployee = () => {
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -786,19 +794,22 @@ const CreateEmployee = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       District *
                     </label>
-                    <input
-                      type="text"
+                    <select
                       value={formData.address.district}
                       onChange={(e) => handleNestedInputChange('address', 'district', e.target.value)}
                       className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 ${
-                        errors['address.district'] ? 'border-red-500' : formData.address.district && !errors['address.district'] ? 'border-green-500' : 'border-gray-300'
+                        errors['address.district'] ? 'border-red-500' : 'border-gray-300'
                       }`}
-                      placeholder="Western Province"
-                    />
-                    {errors['address.district'] ? (
+                    >
+                      <option value="">Select District</option>
+                      {SRI_LANKAN_DISTRICTS.map((district) => (
+                        <option key={district} value={district}>
+                          {district}
+                        </option>
+                      ))}
+                    </select>
+                    {errors['address.district'] && (
                       <p className="text-red-500 text-sm mt-1">{errors['address.district']}</p>
-                    ) : formData.address.district && !errors['address.district'] && (
-                      <p className="text-green-600 text-sm mt-1">✓ Valid district</p>
                     )}
                   </div>
 

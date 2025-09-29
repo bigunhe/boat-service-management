@@ -41,7 +41,7 @@ const Navbar = () => {
                   Support
                 </Link>
                 <Link
-                  to="/profile"
+                  to={user?.role === 'admin' ? '/admin/profile' : user?.role === 'employee' ? '/employee/profile' : '/profile'}
                   className="text-gray-700 hover:text-teal-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
                 >
                   Profile

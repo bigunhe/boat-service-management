@@ -17,6 +17,7 @@ import ServiceInfo from './pages/public/ServiceInfo';
 import Login from './pages/user/Login';
 import Register from './pages/user/Register';
 import Profile from './pages/user/Profile';
+import CustomerProfile from './pages/user/CustomerProfile';
 import Dashboard from './pages/user/dashboards/Dashboard';
 import MyBookings from './pages/user/MyBookings';
 import MyRepairs from './pages/user/MyRepairs';
@@ -51,6 +52,9 @@ import CreateEmployee from './pages/admin/CreateEmployee';
 import UserManagementList from './pages/admin/UserManagementList';
 import UserDetails from './pages/admin/UserDetails';
 import AdminProfile from './pages/admin/AdminProfile';
+import UserAnalytics from './pages/admin/UserAnalytics';
+import RepairAnalytics from './pages/admin/RepairAnalytics';
+import FinancialAnalytics from './pages/admin/FinancialAnalytics';
 
 
 // Components
@@ -94,7 +98,7 @@ function App() {
               <Route path="/repair-details/:id" element={<ProtectedRoute><RepairDetails /></ProtectedRoute>} />
               <Route path="/service-history" element={<ProtectedRoute><ServiceHistory /></ProtectedRoute>} />
               <Route path="/payment-history" element={<ProtectedRoute><PaymentHistory /></ProtectedRoute>} />
-              <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+              <Route path="/profile" element={<ProtectedRoute><CustomerProfile /></ProtectedRoute>} />
               
               {/* Employee Routes */}
               <Route path="/employee/repair-management" element={<ProtectedRoute requiredRole="employee"><RepairManagementList /></ProtectedRoute>} />
@@ -111,6 +115,9 @@ function App() {
               <Route path="/admin/users/:id" element={<ProtectedRoute requiredRole="admin"><UserDetails /></ProtectedRoute>} />
               <Route path="/admin/users/:id/edit" element={<ProtectedRoute requiredRole="admin"><UserDetails /></ProtectedRoute>} />
               <Route path="/admin/profile" element={<ProtectedRoute requiredRole="admin"><AdminProfile /></ProtectedRoute>} />
+              <Route path="/admin/user-analytics" element={<ProtectedRoute requiredRole="admin"><UserAnalytics /></ProtectedRoute>} />
+              <Route path="/admin/repair-analytics" element={<ProtectedRoute requiredRole="admin"><RepairAnalytics /></ProtectedRoute>} />
+              <Route path="/admin/financial-analytics" element={<ProtectedRoute requiredRole="admin"><FinancialAnalytics /></ProtectedRoute>} />
               
               
               {/* 404 Route */}

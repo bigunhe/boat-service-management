@@ -1,9 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { FaUser, FaEdit, FaSave, FaTimes, FaStar, FaCheckCircle, FaArrowLeft } from 'react-icons/fa';
+import { FaUser, FaEdit, FaSave, FaTimes, FaStar, FaCheckCircle, FaArrowLeft, FaExclamationTriangle } from 'react-icons/fa';
 import ChangePassword from '../../components/ChangePassword';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
+
+const SRI_LANKAN_DISTRICTS = [
+  'Ampara', 'Anuradhapura', 'Badulla', 'Batticaloa', 'Colombo',
+  'Galle', 'Gampaha', 'Hambantota', 'Jaffna', 'Kalutara',
+  'Kandy', 'Kegalle', 'Kilinochchi', 'Kurunegala', 'Mannar',
+  'Matale', 'Matara', 'Moneragala', 'Mullaitivu', 'Nuwara Eliya',
+  'Polonnaruwa', 'Puttalam', 'Ratnapura', 'Trincomalee', 'Vavuniya'
+];
 
 const AdminProfile = () => {
   const { user, updateUser } = useAuth();
@@ -21,6 +29,7 @@ const AdminProfile = () => {
       postalCode: ''
     }
   });
+  const [errors, setErrors] = useState({});
 
   useEffect(() => {
     if (user) {
@@ -39,6 +48,15 @@ const AdminProfile = () => {
   }, [user]);
 
   const handleInputChange = (field, value) => {
+    // Special handling for phone fields - restrict to numbers only and max 10 digits
+    if (field === 'phone') {
+      // Remove all non-digit characters
+      const digitsOnly = value.replace(/\D/g, '');
+      // Limit to 10 digits maximum
+      const limitedValue = digitsOnly.slice(0, 10);
+      value = limitedValue;
+    }
+
     if (field.includes('.')) {
       const [parent, child] = field.split('.');
       setFormData(prev => ({
@@ -54,9 +72,114 @@ const AdminProfile = () => {
         [field]: value
       }));
     }
+
+    // Clear error when user starts typing
+    if (errors[field]) {
+      setErrors(prev => ({
+        ...prev,
+        [field]: ''
+      }));
+    }
+
+    // Real-time validation
+    validateField(field, value);
+  };
+
+  // Real-time field validation
+  const validateField = (field, value) => {
+    const newErrors = { ...errors };
+    let hasError = false;
+
+    switch (field) {
+      case 'name':
+        if (!value?.trim()) {
+          newErrors.name = 'Name is required';
+          hasError = true;
+        } else if (value.trim().length < 2) {
+          newErrors.name = 'Name must be at least 2 characters';
+          hasError = true;
+        } else if (!/^[a-zA-Z\s]+$/.test(value.trim())) {
+          newErrors.name = 'Name can only contain letters and spaces';
+          hasError = true;
+        }
+        break;
+
+      case 'phone':
+        if (!value?.trim()) {
+          newErrors.phone = 'Phone number is required';
+          hasError = true;
+        } else if (!/^\d{10}$/.test(value)) {
+          newErrors.phone = 'Phone number must be exactly 10 digits';
+          hasError = true;
+        }
+        break;
+
+      case 'address.street':
+        if (!value?.trim()) {
+          newErrors['address.street'] = 'Street address is required';
+          hasError = true;
+        } else if (value.trim().length < 5) {
+          newErrors['address.street'] = 'Street address must be at least 5 characters';
+          hasError = true;
+        }
+        break;
+
+      case 'address.city':
+        if (!value?.trim()) {
+          newErrors['address.city'] = 'City is required';
+          hasError = true;
+        } else if (!/^[a-zA-Z\s]+$/.test(value.trim())) {
+          newErrors['address.city'] = 'City can only contain letters and spaces';
+          hasError = true;
+        } else if (value.trim().length < 2) {
+          newErrors['address.city'] = 'City must be at least 2 characters';
+          hasError = true;
+        }
+        break;
+
+      case 'address.district':
+        if (!value?.trim()) {
+          newErrors['address.district'] = 'District is required';
+          hasError = true;
+        } else if (!/^[a-zA-Z\s]+$/.test(value.trim())) {
+          newErrors['address.district'] = 'District can only contain letters and spaces';
+          hasError = true;
+        } else if (value.trim().length < 2) {
+          newErrors['address.district'] = 'District must be at least 2 characters';
+          hasError = true;
+        }
+        break;
+
+      case 'address.postalCode':
+        if (!value?.trim()) {
+          newErrors['address.postalCode'] = 'Postal code is required';
+          hasError = true;
+        } else if (!/^\d{5}$/.test(value.trim())) {
+          newErrors['address.postalCode'] = 'Postal code must be exactly 5 digits';
+          hasError = true;
+        }
+        break;
+
+      default:
+        break;
+    }
+
+    if (hasError) {
+      setErrors(newErrors);
+    } else if (newErrors[field]) {
+      const updatedErrors = { ...errors };
+      delete updatedErrors[field];
+      setErrors(updatedErrors);
+    }
   };
 
   const handleSave = async () => {
+    // Check for validation errors
+    if (Object.keys(errors).length > 0) {
+      toast.error('Please fix validation errors before saving');
+      return;
+    }
+
     setIsLoading(true);
     
     try {
@@ -85,6 +208,7 @@ const AdminProfile = () => {
       if (data.success) {
         toast.success('Profile updated successfully!');
         setIsEditing(false);
+        setErrors({});
         // Update the user context with new data
         const updatedUser = { ...user, ...formData };
         updateUser(updatedUser);
@@ -112,6 +236,7 @@ const AdminProfile = () => {
       }
     });
     setIsEditing(false);
+    setErrors({});
   };
 
   if (!user) {
@@ -185,15 +310,26 @@ const AdminProfile = () => {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
                 {isEditing ? (
-                  <input
-                    type="text"
-                    value={formData.name}
-                    onChange={(e) => handleInputChange('name', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                  />
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={formData.name}
+                      onChange={(e) => handleInputChange('name', e.target.value)}
+                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
+                        errors.name ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-teal-500'
+                      } pr-10`}
+                      placeholder="Enter full name"
+                    />
+                    {errors.name && (
+                      <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                        <FaExclamationTriangle className="h-5 w-5 text-red-500" />
+                      </div>
+                    )}
+                  </div>
                 ) : (
                   <p className="text-gray-900 bg-gray-50 px-3 py-2 rounded-md">{user.name}</p>
                 )}
+                {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
               </div>
 
               <div>
@@ -213,15 +349,26 @@ const AdminProfile = () => {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Phone Number</label>
                 {isEditing ? (
-                  <input
-                    type="tel"
-                    value={formData.phone}
-                    onChange={(e) => handleInputChange('phone', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                  />
+                  <div className="relative">
+                    <input
+                      type="tel"
+                      value={formData.phone}
+                      onChange={(e) => handleInputChange('phone', e.target.value)}
+                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
+                        errors.phone ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-teal-500'
+                      } pr-10`}
+                      placeholder="e.g., 0771234567"
+                    />
+                    {errors.phone && (
+                      <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                        <FaExclamationTriangle className="h-5 w-5 text-red-500" />
+                      </div>
+                    )}
+                  </div>
                 ) : (
                   <p className="text-gray-900 bg-gray-50 px-3 py-2 rounded-md">{user.phone}</p>
                 )}
+                {errors.phone && <p className="text-red-500 text-sm mt-1">{errors.phone}</p>}
               </div>
             </div>
 
@@ -232,56 +379,103 @@ const AdminProfile = () => {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Street Address</label>
                 {isEditing ? (
-                  <input
-                    type="text"
-                    value={formData.address.street}
-                    onChange={(e) => handleInputChange('address.street', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                  />
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={formData.address.street}
+                      onChange={(e) => handleInputChange('address.street', e.target.value)}
+                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
+                        errors['address.street'] ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-teal-500'
+                      } pr-10`}
+                      placeholder="Enter street address"
+                    />
+                    {errors['address.street'] && (
+                      <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                        <FaExclamationTriangle className="h-5 w-5 text-red-500" />
+                      </div>
+                    )}
+                  </div>
                 ) : (
                   <p className="text-gray-900 bg-gray-50 px-3 py-2 rounded-md">{user.address?.street || 'Not provided'}</p>
                 )}
+                {errors['address.street'] && <p className="text-red-500 text-sm mt-1">{errors['address.street']}</p>}
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">City</label>
                 {isEditing ? (
-                  <input
-                    type="text"
-                    value={formData.address.city}
-                    onChange={(e) => handleInputChange('address.city', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                  />
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={formData.address.city}
+                      onChange={(e) => handleInputChange('address.city', e.target.value)}
+                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
+                        errors['address.city'] ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-teal-500'
+                      } pr-10`}
+                      placeholder="Enter city"
+                    />
+                    {errors['address.city'] && (
+                      <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                        <FaExclamationTriangle className="h-5 w-5 text-red-500" />
+                      </div>
+                    )}
+                  </div>
                 ) : (
                   <p className="text-gray-900 bg-gray-50 px-3 py-2 rounded-md">{user.address?.city || 'Not provided'}</p>
                 )}
+                {errors['address.city'] && <p className="text-red-500 text-sm mt-1">{errors['address.city']}</p>}
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">District</label>
                 {isEditing ? (
-                  <input
-                    type="text"
+                  <select
                     value={formData.address.district}
                     onChange={(e) => handleInputChange('address.district', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                  />
+                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
+                      errors['address.district'] ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-teal-500'
+                    }`}
+                  >
+                    <option value="">Select District</option>
+                    {SRI_LANKAN_DISTRICTS.map((district) => (
+                      <option key={district} value={district}>
+                        {district}
+                      </option>
+                    ))}
+                  </select>
                 ) : (
                   <p className="text-gray-900 bg-gray-50 px-3 py-2 rounded-md">{user.address?.district || 'Not provided'}</p>
                 )}
+                {errors['address.district'] && <p className="text-red-500 text-sm mt-1">{errors['address.district']}</p>}
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Postal Code</label>
                 {isEditing ? (
-                  <input
-                    type="text"
-                    value={formData.address.postalCode}
-                    onChange={(e) => handleInputChange('address.postalCode', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                  />
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={formData.address.postalCode}
+                      onChange={(e) => handleInputChange('address.postalCode', e.target.value)}
+                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
+                        errors['address.postalCode'] ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-teal-500'
+                      } pr-10`}
+                      placeholder="e.g., 12345"
+                      maxLength="5"
+                      pattern="[0-9]{5}"
+                    />
+                    {errors['address.postalCode'] && (
+                      <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                        <FaExclamationTriangle className="h-5 w-5 text-red-500" />
+                      </div>
+                    )}
+                  </div>
                 ) : (
                   <p className="text-gray-900 bg-gray-50 px-3 py-2 rounded-md">{user.address?.postalCode || 'Not provided'}</p>
+                )}
+                {errors['address.postalCode'] && <p className="text-red-500 text-sm mt-1">{errors['address.postalCode']}</p>}
+                {isEditing && !errors['address.postalCode'] && (
+                  <p className="text-gray-500 text-sm mt-1">Enter exactly 5 digits (numbers only)</p>
                 )}
               </div>
             </div>
@@ -328,8 +522,9 @@ const AdminProfile = () => {
               </button>
               <button
                 onClick={handleSave}
-                disabled={isLoading}
+                disabled={isLoading || Object.keys(errors).length > 0}
                 className="flex items-center px-6 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors disabled:opacity-50"
+                title={Object.keys(errors).length > 0 ? 'Please fix validation errors before saving' : ''}
               >
                 {isLoading ? (
                   <>

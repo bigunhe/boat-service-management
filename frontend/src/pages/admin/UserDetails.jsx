@@ -21,6 +21,14 @@ import {
 } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 
+const SRI_LANKAN_DISTRICTS = [
+  'Ampara', 'Anuradhapura', 'Badulla', 'Batticaloa', 'Colombo',
+  'Galle', 'Gampaha', 'Hambantota', 'Jaffna', 'Kalutara',
+  'Kandy', 'Kegalle', 'Kilinochchi', 'Kurunegala', 'Mannar',
+  'Matale', 'Matara', 'Moneragala', 'Mullaitivu', 'Nuwara Eliya',
+  'Polonnaruwa', 'Puttalam', 'Ratnapura', 'Trincomalee', 'Vavuniya'
+];
+
 const UserDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -101,6 +109,15 @@ const UserDetails = () => {
 
   // Handle form input changes
   const handleInputChange = (field, value) => {
+    // Special handling for phone fields - restrict to numbers only and max 10 digits
+    if (field === 'phone' || field === 'emergencyContact.phone') {
+      // Remove all non-digit characters
+      const digitsOnly = value.replace(/\D/g, '');
+      // Limit to 10 digits maximum
+      const limitedValue = digitsOnly.slice(0, 10);
+      value = limitedValue;
+    }
+
     setFormData(prev => ({
       ...prev,
       [field]: value
@@ -113,9 +130,77 @@ const UserDetails = () => {
         [field]: ''
       }));
     }
+
+    // Real-time validation for specific fields
+    validateField(field, value);
+  };
+
+  // Real-time field validation
+  const validateField = (field, value) => {
+    const newErrors = { ...errors };
+    let hasError = false;
+
+    switch (field) {
+      case 'name':
+        if (!value?.trim()) {
+          newErrors.name = 'Name is required';
+          hasError = true;
+        } else if (value.trim().length < 2) {
+          newErrors.name = 'Name must be at least 2 characters';
+          hasError = true;
+        } else if (!/^[a-zA-Z\s]+$/.test(value.trim())) {
+          newErrors.name = 'Name can only contain letters and spaces';
+          hasError = true;
+        }
+        break;
+
+      case 'email':
+        if (value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+          newErrors.email = 'Please enter a valid email address';
+          hasError = true;
+        }
+        break;
+
+      case 'phone':
+        if (!value?.trim()) {
+          newErrors.phone = 'Phone number is required';
+          hasError = true;
+        } else if (!/^\d{10}$/.test(value)) {
+          newErrors.phone = 'Phone number must be exactly 10 digits';
+          hasError = true;
+        }
+        break;
+
+      case 'position':
+        if (value && value.length < 2) {
+          newErrors.position = 'Position must be at least 2 characters';
+          hasError = true;
+        }
+        break;
+
+      default:
+        break;
+    }
+
+    if (hasError) {
+      setErrors(newErrors);
+    } else if (newErrors[field]) {
+      const updatedErrors = { ...errors };
+      delete updatedErrors[field];
+      setErrors(updatedErrors);
+    }
   };
 
   const handleNestedInputChange = (parent, field, value) => {
+    // Special handling for emergency contact phone - restrict to numbers only and max 10 digits
+    if (parent === 'emergencyContact' && field === 'phone') {
+      // Remove all non-digit characters
+      const digitsOnly = value.replace(/\D/g, '');
+      // Limit to 10 digits maximum
+      const limitedValue = digitsOnly.slice(0, 10);
+      value = limitedValue;
+    }
+
     setFormData(prev => ({
       ...prev,
       [parent]: {
@@ -131,6 +216,119 @@ const UserDetails = () => {
         ...prev,
         [fieldPath]: ''
       }));
+    }
+
+    // Real-time validation for nested fields
+    validateNestedField(parent, field, value);
+  };
+
+  // Real-time validation for nested fields
+  const validateNestedField = (parent, field, value) => {
+    const fieldPath = `${parent}.${field}`;
+    const newErrors = { ...errors };
+    let hasError = false;
+
+    switch (parent) {
+      case 'address':
+        switch (field) {
+          case 'street':
+            if (!value?.trim()) {
+              newErrors[fieldPath] = 'Street address is required';
+              hasError = true;
+            } else if (value.trim().length < 5) {
+              newErrors[fieldPath] = 'Street address must be at least 5 characters';
+              hasError = true;
+            }
+            break;
+
+          case 'city':
+            if (!value?.trim()) {
+              newErrors[fieldPath] = 'City is required';
+              hasError = true;
+            } else if (!/^[a-zA-Z\s]+$/.test(value.trim())) {
+              newErrors[fieldPath] = 'City can only contain letters and spaces';
+              hasError = true;
+            } else if (value.trim().length < 2) {
+              newErrors[fieldPath] = 'City must be at least 2 characters';
+              hasError = true;
+            }
+            break;
+
+          case 'district':
+            if (!value?.trim()) {
+              newErrors[fieldPath] = 'District is required';
+              hasError = true;
+            } else if (!/^[a-zA-Z\s]+$/.test(value.trim())) {
+              newErrors[fieldPath] = 'District can only contain letters and spaces';
+              hasError = true;
+            } else if (value.trim().length < 2) {
+              newErrors[fieldPath] = 'District must be at least 2 characters';
+              hasError = true;
+            }
+            break;
+
+          case 'postalCode':
+            if (!value?.trim()) {
+              newErrors[fieldPath] = 'Postal code is required';
+              hasError = true;
+            } else if (!/^\d{5}$/.test(value.trim())) {
+              newErrors[fieldPath] = 'Postal code must be exactly 5 digits';
+              hasError = true;
+            }
+            break;
+
+          default:
+            break;
+        }
+        break;
+
+      case 'emergencyContact':
+        switch (field) {
+          case 'name':
+            if (!value?.trim()) {
+              newErrors[fieldPath] = 'Emergency contact name is required';
+              hasError = true;
+            } else if (value.trim().length < 2) {
+              newErrors[fieldPath] = 'Contact name must be at least 2 characters';
+              hasError = true;
+            } else if (!/^[a-zA-Z\s]+$/.test(value.trim())) {
+              newErrors[fieldPath] = 'Contact name can only contain letters and spaces';
+              hasError = true;
+            }
+            break;
+
+          case 'phone':
+            if (!value?.trim()) {
+              newErrors[fieldPath] = 'Emergency contact phone is required';
+              hasError = true;
+            } else if (!/^\d{10}$/.test(value)) {
+              newErrors[fieldPath] = 'Phone number must be exactly 10 digits';
+              hasError = true;
+            }
+            break;
+
+          case 'relationship':
+            if (value && value.length < 2) {
+              newErrors[fieldPath] = 'Relationship must be at least 2 characters';
+              hasError = true;
+            }
+            break;
+
+          default:
+            break;
+        }
+        break;
+
+      default:
+        break;
+    }
+
+    if (hasError) {
+      setErrors(newErrors);
+    } else if (newErrors[fieldPath]) {
+      const updatedErrors = { ...errors };
+      delete updatedErrors[fieldPath];
+      setErrors(updatedErrors);
     }
   };
 
@@ -370,8 +568,9 @@ const UserDetails = () => {
                   </button>
                   <button
                     onClick={handleSave}
-                    disabled={saving}
+                    disabled={saving || Object.keys(errors).length > 0}
                     className="bg-teal-600 text-white px-4 py-2 rounded-lg hover:bg-teal-700 disabled:opacity-50 flex items-center gap-2"
+                    title={Object.keys(errors).length > 0 ? 'Please fix validation errors before saving' : ''}
                   >
                     <FaSave className="w-4 h-4" />
                     {saving ? 'Saving...' : 'Save Changes'}
@@ -395,14 +594,22 @@ const UserDetails = () => {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
                 {editing ? (
-                  <input
-                    type="text"
-                    value={formData.name}
-                    onChange={(e) => handleInputChange('name', e.target.value)}
-                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 ${
-                      errors.name ? 'border-red-500' : 'border-gray-300'
-                    }`}
-                  />
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={formData.name}
+                      onChange={(e) => handleInputChange('name', e.target.value)}
+                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
+                        errors.name ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-teal-500'
+                      } pr-10`}
+                      placeholder="Enter full name"
+                    />
+                    {errors.name && (
+                      <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                        <FaExclamationTriangle className="h-5 w-5 text-red-500" />
+                      </div>
+                    )}
+                  </div>
                 ) : (
                   <p className="text-gray-900">{user.name}</p>
                 )}
@@ -412,14 +619,22 @@ const UserDetails = () => {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
                 {editing && user.role !== 'customer' ? (
-                  <input
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => handleInputChange('email', e.target.value)}
-                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 ${
-                      errors.email ? 'border-red-500' : 'border-gray-300'
-                    }`}
-                  />
+                  <div className="relative">
+                    <input
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => handleInputChange('email', e.target.value)}
+                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
+                        errors.email ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-teal-500'
+                      } pr-10`}
+                      placeholder="Enter email address"
+                    />
+                    {errors.email && (
+                      <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                        <FaExclamationTriangle className="h-5 w-5 text-red-500" />
+                      </div>
+                    )}
+                  </div>
                 ) : (
                   <p className="text-gray-900 flex items-center">
                     <FaEnvelope className="w-4 h-4 mr-2 text-gray-400" />
@@ -449,14 +664,22 @@ const UserDetails = () => {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Phone</label>
                 {editing ? (
-                  <input
-                    type="tel"
-                    value={formData.phone}
-                    onChange={(e) => handleInputChange('phone', e.target.value)}
-                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 ${
-                      errors.phone ? 'border-red-500' : 'border-gray-300'
-                    }`}
-                  />
+                  <div className="relative">
+                    <input
+                      type="tel"
+                      value={formData.phone}
+                      onChange={(e) => handleInputChange('phone', e.target.value)}
+                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
+                        errors.phone ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-teal-500'
+                      } pr-10`}
+                      placeholder="e.g., 0771234567"
+                    />
+                    {errors.phone && (
+                      <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                        <FaExclamationTriangle className="h-5 w-5 text-red-500" />
+                      </div>
+                    )}
+                  </div>
                 ) : (
                   <p className="text-gray-900 flex items-center">
                     <FaPhone className="w-4 h-4 mr-2 text-gray-400" />
@@ -468,25 +691,13 @@ const UserDetails = () => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">NIC</label>
-                {editing && user.role !== 'customer' ? (
-                  <input
-                    type="text"
-                    value={formData.nic}
-                    onChange={(e) => handleInputChange('nic', e.target.value)}
-                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 ${
-                      errors.nic ? 'border-red-500' : 'border-gray-300'
-                    }`}
-                  />
-                ) : (
-                  <p className="text-gray-900 flex items-center">
-                    <FaIdCard className="w-4 h-4 mr-2 text-gray-400" />
-                    {user.nic}
-                  </p>
+                <p className="text-gray-900 flex items-center">
+                  <FaIdCard className="w-4 h-4 mr-2 text-gray-400" />
+                  {user.nic}
+                </p>
+                {editing && (
+                  <p className="text-gray-500 text-sm mt-1">NIC cannot be edited (read-only field)</p>
                 )}
-                {user.role === 'customer' && editing && (
-                  <p className="text-gray-500 text-sm mt-1">NIC cannot be edited for customer accounts</p>
-                )}
-                {errors.nic && <p className="text-red-500 text-sm mt-1">{errors.nic}</p>}
               </div>
 
               <div>
@@ -553,14 +764,20 @@ const UserDetails = () => {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">District</label>
                   {editing ? (
-                    <input
-                      type="text"
+                    <select
                       value={formData.address?.district || ''}
                       onChange={(e) => handleNestedInputChange('address', 'district', e.target.value)}
                       className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 ${
                         errors['address.district'] ? 'border-red-500' : 'border-gray-300'
                       }`}
-                    />
+                    >
+                      <option value="">Select District</option>
+                      {SRI_LANKAN_DISTRICTS.map((district) => (
+                        <option key={district} value={district}>
+                          {district}
+                        </option>
+                      ))}
+                    </select>
                   ) : (
                     <p className="text-gray-900">{user.address?.district || 'N/A'}</p>
                   )}
@@ -571,18 +788,31 @@ const UserDetails = () => {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Postal Code</label>
                 {editing ? (
-                  <input
-                    type="text"
-                    value={formData.address?.postalCode || ''}
-                    onChange={(e) => handleNestedInputChange('address', 'postalCode', e.target.value)}
-                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 ${
-                      errors['address.postalCode'] ? 'border-red-500' : 'border-gray-300'
-                    }`}
-                  />
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={formData.address?.postalCode || ''}
+                      onChange={(e) => handleNestedInputChange('address', 'postalCode', e.target.value)}
+                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
+                        errors['address.postalCode'] ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-teal-500'
+                      } pr-10`}
+                      placeholder="e.g., 12345"
+                      maxLength="5"
+                      pattern="[0-9]{5}"
+                    />
+                    {errors['address.postalCode'] && (
+                      <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                        <FaExclamationTriangle className="h-5 w-5 text-red-500" />
+                      </div>
+                    )}
+                  </div>
                 ) : (
                   <p className="text-gray-900">{user.address?.postalCode || 'N/A'}</p>
                 )}
                 {errors['address.postalCode'] && <p className="text-red-500 text-sm mt-1">{errors['address.postalCode']}</p>}
+                {editing && !errors['address.postalCode'] && (
+                  <p className="text-gray-500 text-sm mt-1">Enter exactly 5 digits (numbers only)</p>
+                )}
               </div>
             </div>
           </div>
@@ -599,31 +829,38 @@ const UserDetails = () => {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Employee ID</label>
-                <p className="text-gray-900 font-mono bg-gray-100 px-3 py-2 rounded">
-                  {user.employeeData?.employeeId || 'N/A'}
+                <p className="text-gray-900 font-mono bg-blue-50 border border-blue-200 px-3 py-2 rounded-lg">
+                  {user.employeeData?.employeeId || 'EMP001'}
                 </p>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Position</label>
                 {editing && user.role !== 'customer' ? (
-                  <select
-                    value={formData.position}
-                    onChange={(e) => handleInputChange('position', e.target.value)}
-                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 ${
-                      errors.position ? 'border-red-500' : 'border-gray-300'
-                    }`}
-                  >
-                    <option value="">Select position</option>
-                    <option value="General Employee">General Employee</option>
-                    <option value="Technician">Technician</option>
-                    <option value="Mechanic">Mechanic</option>
-                    <option value="Repair Specialist">Repair Specialist</option>
-                    <option value="Customer Service">Customer Service</option>
-                    <option value="Receptionist">Receptionist</option>
-                    <option value="Manager">Manager</option>
-                    <option value="Supervisor">Supervisor</option>
-                  </select>
+                  <div className="relative">
+                    <select
+                      value={formData.position}
+                      onChange={(e) => handleInputChange('position', e.target.value)}
+                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
+                        errors.position ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-teal-500'
+                      }`}
+                    >
+                      <option value="">Select position</option>
+                      <option value="General Employee">General Employee</option>
+                      <option value="Technician">Technician</option>
+                      <option value="Mechanic">Mechanic</option>
+                      <option value="Repair Specialist">Repair Specialist</option>
+                      <option value="Customer Service">Customer Service</option>
+                      <option value="Receptionist">Receptionist</option>
+                      <option value="Manager">Manager</option>
+                      <option value="Supervisor">Supervisor</option>
+                    </select>
+                    {errors.position && (
+                      <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                        <FaExclamationTriangle className="h-5 w-5 text-red-500" />
+                      </div>
+                    )}
+                  </div>
                 ) : (
                   <p className="text-gray-900">{user.employeeData?.position || 'N/A'}</p>
                 )}
@@ -635,32 +872,20 @@ const UserDetails = () => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Date of Birth</label>
-                {editing && user.role !== 'customer' ? (
-                  <input
-                    type="date"
-                    value={formData.dateOfBirth}
-                    onChange={(e) => handleInputChange('dateOfBirth', e.target.value)}
-                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 ${
-                      errors.dateOfBirth ? 'border-red-500' : 'border-gray-300'
-                    }`}
-                  />
-                ) : (
-                  <p className="text-gray-900 flex items-center">
-                    <FaCalendarAlt className="w-4 h-4 mr-2 text-gray-400" />
-                    {user.employeeData?.dateOfBirth ? formatDate(user.employeeData.dateOfBirth) : 'N/A'}
-                  </p>
+                <p className="text-gray-900 flex items-center">
+                  <FaCalendarAlt className="w-4 h-4 mr-2 text-gray-400" />
+                  {user.employeeData?.dateOfBirth ? formatDate(user.employeeData.dateOfBirth) : 'N/A'}
+                </p>
+                {editing && (
+                  <p className="text-gray-500 text-sm mt-1">Date of birth cannot be edited (read-only field)</p>
                 )}
-                {user.role === 'customer' && editing && (
-                  <p className="text-gray-500 text-sm mt-1">Date of birth cannot be edited for customer accounts</p>
-                )}
-                {errors.dateOfBirth && <p className="text-red-500 text-sm mt-1">{errors.dateOfBirth}</p>}
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Hire Date</label>
-                <p className="text-gray-900 flex items-center">
-                  <FaCalendarAlt className="w-4 h-4 mr-2 text-gray-400" />
-                  {user.employeeData?.hireDate ? formatDate(user.employeeData.hireDate) : 'N/A'}
+                <p className="text-gray-900 bg-blue-50 border border-blue-200 px-3 py-2 rounded-lg flex items-center">
+                  <FaCalendarAlt className="w-4 h-4 mr-2 text-blue-600" />
+                  {formatDate(user.employeeData?.hireDate || user.createdAt)}
                 </p>
               </div>
             </div>

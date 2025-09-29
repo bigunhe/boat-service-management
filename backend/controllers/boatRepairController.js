@@ -355,6 +355,9 @@ export const generatePDFConfirmation = async (req, res, next) => {
 
     let currentY = 50;
 
+
+
+
     // Company Header - Compact
     doc.rect(50, currentY, 500, 50).fillColor('#f0fdfa').fill();
     doc.rect(50, currentY, 500, 50).strokeColor('#0d9488').lineWidth(1).stroke();

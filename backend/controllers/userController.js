@@ -1,4 +1,5 @@
 import User from '../models/userModel.js';
+import BoatRepair from '../models/boatRepairModel.js';
 import jwt from 'jsonwebtoken';
 
 // register a new user
@@ -26,6 +27,29 @@ const registerUser = async(req,res)=>{
 
     const existingUser = await User.findOne({email});
     if(existingUser){
+
+      // Fix existing employee if they don't have employeeData
+      if (role === 'employee' && existingUser.role === 'employee') {
+        if (!existingUser.employeeData?.employeeId) {
+          const employeeCount = await User.countDocuments({ role: 'employee' });
+          const newEmployeeId = `EMP${String(employeeCount + 1).padStart(3, '0')}`;
+          
+          existingUser.employeeData = {
+            employeeId: newEmployeeId,
+            position,
+            hireDate: existingUser.createdAt || new Date(),
+            dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : undefined,
+            emergencyContact: {
+              name: emergencyContact?.name,
+              phone: emergencyContact?.phone,
+              relationship: emergencyContact?.relationship
+            }
+          };
+          await existingUser.save();
+          console.log('Fixed existing employee data for:', existingUser.name);
+        }
+      }
+      
       return res.status(400).json({error: 'User with this email already exists'});
     }
 
@@ -699,4 +723,28 @@ const searchUsers = async(req, res) =>{
 }
 
 
-export {registerUser, loginUser, updateProfile, updatePassword, getUserProfile, getAllUsers, getAllUsersDebug, deleteUser, updateUser, searchUsers, getUserById}
+// Get dashboard statistics
+const getDashboardStats = async (req, res) => {
+  try {
+    const totalUsers = await User.countDocuments();
+    const totalCustomers = await User.countDocuments({ role: 'customer' });
+    const totalEmployees = await User.countDocuments({ role: 'employee' });
+    const totalRepairs = await BoatRepair.countDocuments();
+    
+    res.json({
+      success: true,
+      data: {
+        totalUsers,
+        totalCustomers,
+        totalEmployees,
+        totalRides: 0, // Placeholder for now
+        totalRepairs
+      }
+    });
+  } catch (error) {
+    console.error('Error getting dashboard stats:', error);
+    res.status(500).json({ success: false, message: 'Failed to get dashboard stats' });
+  }
+};
+
+export {registerUser, loginUser, updateProfile, updatePassword, getUserProfile, getAllUsers, getAllUsersDebug, deleteUser, updateUser, searchUsers, getUserById, getDashboardStats}

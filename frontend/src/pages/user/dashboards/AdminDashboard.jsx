@@ -1,9 +1,37 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaCog, FaUsers, FaChartBar, FaTools, FaShip, FaUserPlus, FaEye, FaEdit, FaTrash, FaDownload, FaUser, FaServer, FaArrowUp, FaList } from 'react-icons/fa';
 
 const AdminDashboard = ({ firstName }) => {
   const navigate = useNavigate();
+  const [dashboardStats, setDashboardStats] = useState({
+    totalUsers: 0,
+    totalCustomers: 0,
+    totalEmployees: 0,
+    totalRides: 0,
+    totalRepairs: 0
+  });
+
+  useEffect(() => {
+    fetchDashboardStats();
+  }, []);
+
+  const fetchDashboardStats = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:5001/api/users/stats', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const data = await response.json();
+      if (data.success) {
+        setDashboardStats(data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching dashboard stats:', error);
+    }
+  };
 
   const userManagementFeatures = [
     {
@@ -12,7 +40,7 @@ const AdminDashboard = ({ firstName }) => {
       description: 'Add new employee accounts with detailed information',
       color: 'bg-gradient-to-br from-purple-500 to-indigo-500',
       route: '/admin/create-employee?from=/dashboard',
-      metric: '23 Active'
+      metric: `${dashboardStats.totalEmployees} Active`
     },
     {
       name: 'View All Users',
@@ -20,14 +48,14 @@ const AdminDashboard = ({ firstName }) => {
       description: 'Browse and manage all customer and employee accounts',
       color: 'bg-gradient-to-br from-indigo-500 to-purple-500',
       route: '/admin/users',
-      metric: '1,247 Total'
+      metric: `${dashboardStats.totalUsers} Total`
     },
     {
       name: 'User Analytics',
       icon: <FaChartBar />,
       description: 'View user statistics and system analytics',
       color: 'bg-gradient-to-br from-violet-500 to-purple-500',
-      route: '/admin/analytics',
+      route: '/admin/user-analytics',
       metric: '98% Active'
     }
   ];
@@ -69,11 +97,35 @@ const AdminDashboard = ({ firstName }) => {
     }
   ];
 
+  const analyticsFeatures = [
+    {
+      name: 'User Analytics',
+      icon: <FaUsers />,
+      description: 'User registration trends, distribution, and geographic insights',
+      color: 'bg-gradient-to-br from-blue-500 to-cyan-500',
+      route: '/admin/user-analytics'
+    },
+    {
+      name: 'Repair Analytics',
+      icon: <FaTools />,
+      description: 'Service request types, monthly volume, and repair insights',
+      color: 'bg-gradient-to-br from-orange-500 to-red-500',
+      route: '/admin/repair-analytics'
+    },
+    {
+      name: 'Financial Analytics',
+      icon: <FaChartBar />,
+      description: 'Revenue trends, payment insights, and financial performance',
+      color: 'bg-gradient-to-br from-green-500 to-emerald-500',
+      route: '/admin/financial-analytics'
+    }
+  ];
+
   const quickStats = [
-    { label: 'Total Customers', value: '0', color: 'text-purple-600', bgColor: 'bg-purple-100', icon: <FaUsers /> },
-    { label: 'Total Employees', value: '0', color: 'text-indigo-600', bgColor: 'bg-indigo-100', icon: <FaUserPlus /> },
-    { label: 'Total Repairs', value: '0', color: 'text-violet-600', bgColor: 'bg-violet-100', icon: <FaTools /> },
-    { label: 'Total Rides', value: '0', color: 'text-green-600', bgColor: 'bg-green-100', icon: <FaShip /> }
+    { label: 'Total Customers', value: dashboardStats.totalCustomers.toString(), color: 'text-purple-600', bgColor: 'bg-purple-100', icon: <FaUsers /> },
+    { label: 'Total Employees', value: dashboardStats.totalEmployees.toString(), color: 'text-indigo-600', bgColor: 'bg-indigo-100', icon: <FaUserPlus /> },
+    { label: 'Total Repairs', value: dashboardStats.totalRepairs.toString(), color: 'text-violet-600', bgColor: 'bg-violet-100', icon: <FaTools /> },
+    { label: 'Total Rides', value: dashboardStats.totalRides.toString(), color: 'text-green-600', bgColor: 'bg-green-100', icon: <FaShip /> }
   ];
 
 
@@ -156,6 +208,37 @@ const AdminDashboard = ({ firstName }) => {
                     <span className="text-sm font-medium text-purple-600 bg-purple-100 px-2 py-1 rounded-full">
                       {feature.metric}
                     </span>
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 group-hover:text-purple-600 transition-colors">
+                    {feature.name}
+                  </h3>
+                  <p className="text-gray-600 text-sm leading-relaxed mt-2">
+                    {feature.description}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Analytics Features */}
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
+            <FaChartBar className="mr-2 text-violet-500" />
+            Analytics & Insights
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {analyticsFeatures.map((feature, index) => (
+              <div
+                key={index}
+                onClick={() => handleFeatureClick(feature.route)}
+                className="bg-white rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer group transform hover:-translate-y-1 border border-purple-100"
+              >
+                <div className="p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className={`${feature.color} text-white p-3 rounded-lg group-hover:scale-110 transition-transform duration-300 shadow-lg`}>
+                      {feature.icon}
+                    </div>
                   </div>
                   <h3 className="text-lg font-semibold text-gray-900 group-hover:text-purple-600 transition-colors">
                     {feature.name}

@@ -5,6 +5,7 @@ import morgan from 'morgan';
 import connectDB from './config/database.js';
 import dotenv from 'dotenv';
 dotenv.config();
+import User from './models/userModel.js';
 
 import userRoutes from './routes/userRoutes.js';
 import boatRepairRoutes from './routes/boatRepairRoutes.js';
@@ -83,11 +84,57 @@ app.use('*', (req, res) => {
   res.status(404).json({ error: 'Route not found' });
 });
 
+// Fix existing employees without employeeData
+const fixExistingEmployees = async () => {
+  try {
+    const employees = await User.find({ role: 'employee' });
+    let maxId = 0;
+    
+    // Find highest existing employee ID
+    const existingEmployees = await User.find({ 
+      role: 'employee', 
+      'employeeData.employeeId': { $exists: true, $ne: null, $ne: '' }
+    });
+    
+    existingEmployees.forEach(emp => {
+      const empId = emp.employeeData?.employeeId;
+      if (empId && empId.startsWith('EMP')) {
+        const num = parseInt(empId.substring(3));
+        if (!isNaN(num)) {
+          maxId = Math.max(maxId, num);
+        }
+      }
+    });
+
+    let fixedCount = 0;
+    for (const emp of employees.filter(e => !e.employeeData?.employeeId)) {
+      maxId++;
+      emp.employeeData = {
+        employeeId: `EMP${String(maxId).padStart(3, '0')}`,
+        hireDate: emp.createdAt || new Date(),
+        ...emp.employeeData
+      };
+      await emp.save();
+      console.log(`🔧 Fixed employee: ${emp.name} - ${emp.employeeData.employeeId}`);
+      fixedCount++;
+    }
+    
+    if (fixedCount > 0) {
+      console.log(`✅ Fixed ${fixedCount} employees`);
+    }
+  } catch (error) {
+    console.error('❌ Error fixing employees:', error);
+  }
+};
+
 // Start the server
 const startServer = async () => {
   try {
     // Connect to database first
     await connectDB();
+    
+    // Fix existing employees
+    await fixExistingEmployees();
     
     // Then start the server
     app.listen(PORT, () => {
