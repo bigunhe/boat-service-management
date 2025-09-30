@@ -92,3 +92,7 @@ uploads/
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# Environment files
+.env.example
+.env.backup
