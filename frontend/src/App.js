@@ -36,6 +36,11 @@ import RepairService from './pages/repairService/RepairService';
 import BoatPurchase from './pages/purchaseVisit/BoatPurchase';
 import BookingConfirmation from './pages/repairService/BookingConfirmation';
 import SparePartsStore from './pages/spareParts/SparePartsStore';
+import ShopCategory from './pages/spareParts/ShopCategory';
+import ProductDetailsPage from './pages/spareParts/ProductDetailsPage';
+import InventoryManagement from './pages/spareParts/InventoryManagement';
+import CreateProduct from './pages/spareParts/CreateProduct';
+import EditProduct from './pages/spareParts/EditProduct';
 import PaymentHistory from './pages/payment/PaymentHistory';
 
 // Employee Pages
@@ -91,7 +96,8 @@ function App() {
               <Route path="/repair-service" element={<ProtectedRoute><RepairService /></ProtectedRoute>} />
               <Route path="/repair-service/edit/:id" element={<ProtectedRoute><RepairService /></ProtectedRoute>} />
               <Route path="/boat-purchase" element={<ProtectedRoute><BoatPurchase /></ProtectedRoute>} />
-              <Route path="/spare-parts" element={<ProtectedRoute><SparePartsStore /></ProtectedRoute>} />
+              <Route path="/spare-parts" element={<ProtectedRoute><ShopCategory /></ProtectedRoute>} />
+              <Route path="/spare-parts/:id" element={<ProtectedRoute><ProductDetailsPage /></ProtectedRoute>} />
               <Route path="/booking-confirmation/:bookingId" element={<ProtectedRoute><BookingConfirmation /></ProtectedRoute>} />
               <Route path="/my-bookings" element={<ProtectedRoute><MyBookings /></ProtectedRoute>} />
               <Route path="/my-repairs" element={<ProtectedRoute><MyRepairs /></ProtectedRoute>} />
@@ -106,6 +112,9 @@ function App() {
               <Route path="/employee/ride-management" element={<ProtectedRoute requiredRole="employee"><RideManagement /></ProtectedRoute>} />
               <Route path="/employee/purchase-management" element={<ProtectedRoute requiredRole="employee"><PurchaseManagement /></ProtectedRoute>} />
               <Route path="/employee/spare-parts-management" element={<ProtectedRoute requiredRole="employee"><SparePartsManagement /></ProtectedRoute>} />
+              <Route path="/inventory" element={<ProtectedRoute requiredRole="employee"><InventoryManagement /></ProtectedRoute>} />
+              <Route path="/inventory/create" element={<ProtectedRoute requiredRole="employee"><CreateProduct /></ProtectedRoute>} />
+              <Route path="/inventory/edit/:id" element={<ProtectedRoute requiredRole="employee"><EditProduct /></ProtectedRoute>} />
               <Route path="/employee/profile" element={<ProtectedRoute requiredRole="employee"><EmployeeProfile /></ProtectedRoute>} />
               <Route path="/employee/customer-support" element={<ProtectedRoute requiredRole="employee"><CustomerSupport /></ProtectedRoute>} />
               

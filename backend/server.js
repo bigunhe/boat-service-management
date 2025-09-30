@@ -11,6 +11,7 @@ import userRoutes from './routes/userRoutes.js';
 import boatRepairRoutes from './routes/boatRepairRoutes.js';
 import authRoutes from './routes/authRoutes.js';
 import boatRideRoutes from './routes/boatRideRoutes.js';
+import productRoutes from './routes/productRoutes.js';
 
 
 
@@ -68,6 +69,9 @@ app.use('/api/auth', authRoutes);
 
 // boat ride routes
 app.use('/api/boat-rides', boatRideRoutes);
+
+// product routes (spare parts)
+app.use('/api/products', productRoutes);
 
 
 // Global error handling middleware

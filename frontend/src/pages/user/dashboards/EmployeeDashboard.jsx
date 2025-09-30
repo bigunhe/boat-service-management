@@ -51,11 +51,11 @@ const EmployeeDashboard = () => {
       count: 5
     },
     { 
-      name: 'Spare Parts Management', 
+      name: 'Inventory Management', 
       icon: <FaShoppingCart />, 
-      description: 'Manage inventory, process orders, and handle shipping', 
+      description: 'Manage spare parts inventory, add products, and update stock', 
       color: 'bg-gradient-to-br from-orange-600 to-red-600',
-      route: '/employee/spare-parts-management',
+      route: '/inventory',
       status: 'processing',
       count: 7
     },
