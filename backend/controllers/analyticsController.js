@@ -216,3 +216,136 @@ export const getRevenueTrends = async (req, res) => {
     res.status(500).json({ success: false, message: 'Failed to get revenue trends' });
   }
 };
+
+// Get repair status breakdown
+export const getRepairStatusBreakdown = async (req, res) => {
+  try {
+    const pipeline = [
+      {
+        $group: {
+          _id: '$status',
+          count: { $sum: 1 }
+        }
+      },
+      {
+        $sort: { count: -1 }
+      }
+    ];
+
+    const statusBreakdown = await BoatRepair.aggregate(pipeline);
+    
+    // Get current month/year data
+    const currentDate = new Date();
+    const currentMonth = currentDate.getMonth() + 1;
+    const currentYear = currentDate.getFullYear();
+    
+    const currentMonthPipeline = [
+      {
+        $match: {
+          $expr: {
+            $and: [
+              { $eq: [{ $year: '$createdAt' }, currentYear] },
+              { $eq: [{ $month: '$createdAt' }, currentMonth] }
+            ]
+          }
+        }
+      },
+      {
+        $group: {
+          _id: '$status',
+          count: { $sum: 1 }
+        }
+      }
+    ];
+
+    const currentMonthData = await BoatRepair.aggregate(currentMonthPipeline);
+    
+    res.json({
+      success: true,
+      data: {
+        allTime: statusBreakdown,
+        currentMonth: currentMonthData
+      }
+    });
+  } catch (error) {
+    console.error('Error getting repair status breakdown:', error);
+    res.status(500).json({ success: false, message: 'Failed to get repair status breakdown' });
+  }
+};
+
+// Get technician performance data
+export const getTechnicianPerformance = async (req, res) => {
+  try {
+    const pipeline = [
+      {
+        $match: {
+          assignedTechnician: { $exists: true, $ne: null }
+        }
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'assignedTechnician',
+          foreignField: '_id',
+          as: 'technician'
+        }
+      },
+      {
+        $unwind: '$technician'
+      },
+      {
+        $group: {
+          _id: {
+            technicianId: '$assignedTechnician',
+            technicianName: '$technician.name',
+            position: '$technician.employeeData.position'
+          },
+          totalAssigned: { $sum: 1 },
+          completed: {
+            $sum: {
+              $cond: [{ $eq: ['$status', 'completed'] }, 1, 0]
+            }
+          },
+          inProgress: {
+            $sum: {
+              $cond: [{ $eq: ['$status', 'in_progress'] }, 1, 0]
+            }
+          },
+          pending: {
+            $sum: {
+              $cond: [{ $eq: ['$status', 'assigned'] }, 1, 0]
+            }
+          }
+        }
+      },
+      {
+        $addFields: {
+          completionRate: {
+            $round: [
+              {
+                $multiply: [
+                  { $divide: ['$completed', '$totalAssigned'] },
+                  100
+                ]
+              },
+              2
+            ]
+          }
+        }
+      },
+      {
+        $sort: { totalAssigned: -1 }
+      }
+    ];
+
+    const technicianPerformance = await BoatRepair.aggregate(pipeline);
+    
+    res.json({
+      success: true,
+      data: technicianPerformance
+    });
+  } catch (error) {
+    console.error('Error getting technician performance:', error);
+    res.status(500).json({ success: false, message: 'Failed to get technician performance' });
+  }
+};

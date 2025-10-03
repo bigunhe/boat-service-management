@@ -127,7 +127,7 @@ const boatRepairSchema = new mongoose.Schema({
   status: {
     type: String,
     enum: [
-      'pending', 'confirmed', 'in_progress', 'waiting_parts',
+      'pending', 'assigned', 'confirmed', 'in_progress', 'waiting_parts',
       'completed', 'cancelled', 'rescheduled'
     ],
     default: 'pending'

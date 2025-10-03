@@ -12,7 +12,8 @@ import {
   FaHourglassHalf,
   FaPlayCircle,
   FaBan,
-  FaExclamationTriangle
+  FaExclamationTriangle,
+  FaArrowLeft
 } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 
@@ -195,6 +196,15 @@ const RepairManagementList = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
+          <div className="flex items-center mb-4">
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors mr-4"
+            >
+              <FaArrowLeft className="mr-2" />
+              Back to Dashboard
+            </button>
+          </div>
           <h1 className="text-3xl font-bold text-gray-900">Repair Management</h1>
           <p className="text-gray-600 mt-2">Manage all repair requests from customers</p>
         </div>
@@ -319,6 +329,10 @@ const RepairManagementList = () => {
                             <p className="text-sm font-medium text-gray-500">Customer</p>
                             <p className="text-sm text-gray-900">{repair.customer?.name}</p>
                             <p className="text-xs text-gray-500">{repair.customer?.email}</p>
+                            <p className="text-sm font-medium text-gray-500 mt-2">Appointment</p>
+                            <p className="text-sm text-gray-900">
+                              {formatDateTime(repair.scheduledDateTime)}
+                            </p>
                           </div>
                           
                           <div>
@@ -327,6 +341,19 @@ const RepairManagementList = () => {
                               {repair.boatDetails?.boatType} - {repair.boatDetails?.boatMake} {repair.boatDetails?.boatModel}
                             </p>
                             <p className="text-xs text-gray-500">Year: {repair.boatDetails?.boatYear}</p>
+                            <p className="text-sm font-medium text-gray-500 mt-2">Assigned Technician</p>
+                            <p className={`text-sm px-2 py-1 rounded-full inline-block ${
+                              repair.assignedTechnician?.name 
+                                ? 'bg-green-100 text-green-800' 
+                                : 'bg-red-100 text-red-800'
+                            }`}>
+                              {repair.assignedTechnician?.name || 'Not assigned'}
+                            </p>
+                            {repair.assignedTechnician?.employeeData?.position && (
+                              <p className="text-xs text-gray-500">
+                                {repair.assignedTechnician.employeeData.position}
+                              </p>
+                            )}
                           </div>
                           
                           <div>
@@ -337,27 +364,6 @@ const RepairManagementList = () => {
                             <p className="text-xs text-gray-500">
                               {repair.problemDescription?.substring(0, 50)}...
                             </p>
-                          </div>
-                        </div>
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div>
-                            <p className="text-sm font-medium text-gray-500">Appointment</p>
-                            <p className="text-sm text-gray-900">
-                              {formatDateTime(repair.scheduledDateTime)}
-                            </p>
-                          </div>
-                          
-                          <div>
-                            <p className="text-sm font-medium text-gray-500">Assigned Technician</p>
-                            <p className="text-sm text-gray-900">
-                              {repair.assignedTechnician?.name || 'Not assigned'}
-                            </p>
-                            {repair.assignedTechnician?.employeeData?.position && (
-                              <p className="text-xs text-gray-500">
-                                {repair.assignedTechnician.employeeData.position}
-                              </p>
-                            )}
                           </div>
                         </div>
                       </div>

@@ -25,7 +25,7 @@ const CustomerDashboard = ({ firstName }) => {
       icon: <FaCar />, 
       description: 'Visit our showroom to explore and purchase new boats',
       color: 'bg-gradient-to-br from-teal-500 to-green-500',
-      route: '/boat-purchase'
+      route: '/boat-catalog'
     },
     { 
       name: 'Spare Parts Store', 

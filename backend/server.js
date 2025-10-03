@@ -11,6 +11,12 @@ import userRoutes from './routes/userRoutes.js';
 import boatRepairRoutes from './routes/boatRepairRoutes.js';
 import authRoutes from './routes/authRoutes.js';
 import boatRideRoutes from './routes/boatRideRoutes.js';
+import productRoutes from './routes/productRoutes.js';
+import aboutRoutes from './routes/about.route.js';
+import boatCatalogRoutes from './routes/boatCatalog.route.js';
+import appointmentBookingRoutes from './routes/appointmentBooking.route.js';
+import contactFormRoutes from './routes/contactForm.route.js';
+import reviewRoutes from './routes/review.route.js';
 
 
 
@@ -23,7 +29,7 @@ app.use(helmet());
 
 // CORS middleware - allows frontend to communicate with backend
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002'],
   credentials: true
 }));
 
@@ -69,6 +75,18 @@ app.use('/api/auth', authRoutes);
 // boat ride routes
 app.use('/api/boat-rides', boatRideRoutes);
 
+// product routes (spare parts)
+app.use('/api/products', productRoutes);
+
+// about page routes
+app.use('/api/about', aboutRoutes);
+
+// Phase 1: Customer routes
+app.use('/api/boats', boatCatalogRoutes);
+app.use('/api/appointments', appointmentBookingRoutes);
+app.use('/api/contacts', contactFormRoutes);
+app.use('/api/reviews', reviewRoutes);
+
 
 // Global error handling middleware
 app.use((err, req, res, next) => {
@@ -84,48 +102,7 @@ app.use('*', (req, res) => {
   res.status(404).json({ error: 'Route not found' });
 });
 
-// Fix existing employees without employeeData
-const fixExistingEmployees = async () => {
-  try {
-    const employees = await User.find({ role: 'employee' });
-    let maxId = 0;
-    
-    // Find highest existing employee ID
-    const existingEmployees = await User.find({ 
-      role: 'employee', 
-      'employeeData.employeeId': { $exists: true, $ne: null, $ne: '' }
-    });
-    
-    existingEmployees.forEach(emp => {
-      const empId = emp.employeeData?.employeeId;
-      if (empId && empId.startsWith('EMP')) {
-        const num = parseInt(empId.substring(3));
-        if (!isNaN(num)) {
-          maxId = Math.max(maxId, num);
-        }
-      }
-    });
-
-    let fixedCount = 0;
-    for (const emp of employees.filter(e => !e.employeeData?.employeeId)) {
-      maxId++;
-      emp.employeeData = {
-        employeeId: `EMP${String(maxId).padStart(3, '0')}`,
-        hireDate: emp.createdAt || new Date(),
-        ...emp.employeeData
-      };
-      await emp.save();
-      console.log(`🔧 Fixed employee: ${emp.name} - ${emp.employeeData.employeeId}`);
-      fixedCount++;
-    }
-    
-    if (fixedCount > 0) {
-      console.log(`✅ Fixed ${fixedCount} employees`);
-    }
-  } catch (error) {
-    console.error('❌ Error fixing employees:', error);
-  }
-};
+// Migration function - completed and no longer needed
 
 // Start the server
 const startServer = async () => {
@@ -133,8 +110,7 @@ const startServer = async () => {
     // Connect to database first
     await connectDB();
     
-    // Fix existing employees
-    await fixExistingEmployees();
+    // Migration completed - no longer needed
     
     // Then start the server
     app.listen(PORT, () => {

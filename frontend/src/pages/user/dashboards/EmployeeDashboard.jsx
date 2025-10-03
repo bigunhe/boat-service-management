@@ -42,20 +42,20 @@ const EmployeeDashboard = () => {
       count: 8
     },
     { 
-      name: 'Purchase Management', 
+      name: 'Boat Purchase Management', 
       icon: <FaCar />, 
-      description: 'Manage boat purchase visits, assign sales reps, and follow up', 
+      description: 'Manage customer service appointments and boat bookings', 
       color: 'bg-gradient-to-br from-yellow-500 to-amber-500',
-      route: '/employee/purchase-management',
+      route: '/admin/appointment-management',
       status: 'pending',
       count: 5
     },
     { 
-      name: 'Spare Parts Management', 
+      name: 'Spare Parts (Inventory) Management', 
       icon: <FaShoppingCart />, 
-      description: 'Manage inventory, process orders, and handle shipping', 
+      description: 'Manage spare parts inventory, add products, and update stock', 
       color: 'bg-gradient-to-br from-orange-600 to-red-600',
-      route: '/employee/spare-parts-management',
+      route: '/inventory',
       status: 'processing',
       count: 7
     },

@@ -31,8 +31,25 @@ const registerUser = async(req,res)=>{
       // Fix existing employee if they don't have employeeData
       if (role === 'employee' && existingUser.role === 'employee') {
         if (!existingUser.employeeData?.employeeId) {
-          const employeeCount = await User.countDocuments({ role: 'employee' });
-          const newEmployeeId = `EMP${String(employeeCount + 1).padStart(3, '0')}`;
+          // Find the highest existing employee ID and increment it
+          const existingEmployees = await User.find({ 
+            role: 'employee', 
+            'employeeData.employeeId': { $exists: true, $ne: null, $ne: '' }
+          });
+          
+          let maxId = 0;
+          existingEmployees.forEach(emp => {
+            const empId = emp.employeeData?.employeeId;
+            if (empId && empId.startsWith('EMP')) {
+              const num = parseInt(empId.substring(3));
+              if (!isNaN(num)) {
+                maxId = Math.max(maxId, num);
+              }
+            }
+          });
+          
+          const newEmployeeId = `EMP${String(maxId + 1).padStart(3, '0')}`;
+          console.log(`Generated new employee ID for existing user: ${newEmployeeId}`);
           
           existingUser.employeeData = {
             employeeId: newEmployeeId,
@@ -71,9 +88,25 @@ const registerUser = async(req,res)=>{
       let finalEmployeeId = employeeId;
       
       if (!finalEmployeeId) {
-        // Get the count of existing employees to generate next ID
-        const employeeCount = await User.countDocuments({ role: 'employee' });
-        finalEmployeeId = `EMP${String(employeeCount + 1).padStart(3, '0')}`;
+        // Find the highest existing employee ID and increment it
+        const existingEmployees = await User.find({ 
+          role: 'employee', 
+          'employeeData.employeeId': { $exists: true, $ne: null, $ne: '' }
+        });
+        
+        let maxId = 0;
+        existingEmployees.forEach(emp => {
+          const empId = emp.employeeData?.employeeId;
+          if (empId && empId.startsWith('EMP')) {
+            const num = parseInt(empId.substring(3));
+            if (!isNaN(num)) {
+              maxId = Math.max(maxId, num);
+            }
+          }
+        });
+        
+        finalEmployeeId = `EMP${String(maxId + 1).padStart(3, '0')}`;
+        console.log(`Generated new employee ID: ${finalEmployeeId}`);
       } else {
         // Check for duplicate employee ID if manually provided
         const existingEmployee = await User.findOne({'employeeData.employeeId': finalEmployeeId});
@@ -731,6 +764,17 @@ const getDashboardStats = async (req, res) => {
     const totalEmployees = await User.countDocuments({ role: 'employee' });
     const totalRepairs = await BoatRepair.countDocuments();
     
+    // Calculate total revenue from completed boat repairs
+    const revenueResult = await BoatRepair.aggregate([
+      { $match: { status: 'completed', totalCost: { $exists: true, $ne: null } } },
+      { $group: { _id: null, totalRevenue: { $sum: '$totalCost' } } }
+    ]);
+    const totalRevenue = revenueResult.length > 0 ? revenueResult[0].totalRevenue : 0;
+
+    // Get total number of products (spare parts)
+    const Product = (await import('../models/productModel.js')).default;
+    const totalProducts = await Product.countDocuments();
+    
     res.json({
       success: true,
       data: {
@@ -738,7 +782,9 @@ const getDashboardStats = async (req, res) => {
         totalCustomers,
         totalEmployees,
         totalRides: 0, // Placeholder for now
-        totalRepairs
+        totalRepairs,
+        totalRevenue,
+        totalProducts
       }
     });
   } catch (error) {

@@ -110,7 +110,8 @@ export const getBoatRepairById = async (req, res, next) => {
     if (
       repair.customer._id.toString() !== req.user.id &&
       (repair.assignedTechnician && repair.assignedTechnician._id.toString() !== req.user.id) &&
-      req.user.role !== 'admin'
+      req.user.role !== 'admin' &&
+      req.user.role !== 'employee'
     ) {
       throw new Error('Not authorized to view this repair request');
     }
@@ -324,33 +325,62 @@ export const generatePDFConfirmation = async (req, res, next) => {
       }
     });
     
-    // Set response headers
+    // Set response headers with cache busting
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="repair-confirmation-${repair.bookingId}.pdf"`);
+    const timestamp = Date.now();
+    res.setHeader('Content-Disposition', `attachment; filename="repair-confirmation-${repair.bookingId}-${timestamp}.pdf"`);
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
 
     // Pipe PDF to response
     doc.pipe(res);
 
-    // Helper function to add section with proper spacing
-    const addSection = (title, y) => {
-      doc.fontSize(16).fillColor('#0d9488').text(title, 50, y);
-      doc.moveDown(0.5);
-      return y + 30;
+    // Page management
+    let currentPage = 1;
+    const maxPages = 2;
+    const pageHeight = 750; // A4 height minus margins
+    const pageBreakMargin = 50;
+
+    // Helper function to check if we need a page break
+    const checkPageBreak = (requiredHeight) => {
+      if (currentY + requiredHeight > pageHeight - pageBreakMargin && currentPage < maxPages) {
+        doc.addPage();
+        currentPage++;
+        currentY = 50;
+        return true;
+      }
+      return false;
     };
 
-    // Helper function to add field with label and value
-    const addField = (label, value, y, color = '#374151') => {
-      doc.fontSize(11).fillColor('#6b7280').text(label + ':', 50, y);
-      doc.fontSize(11).fillColor(color).text(value || 'N/A', 200, y);
-      return y + 20;
+    // Helper function to add section with better spacing
+    const addSection = (title) => {
+      checkPageBreak(35);
+      currentY += 10; // Extra space before section
+      doc.fontSize(14).fillColor('#0d9488').text(title, 50, currentY);
+      currentY += 25; // More space after title
+      return currentY;
     };
 
-    // Helper function to add multiline text
-    const addMultilineText = (label, text, y, maxWidth = 450) => {
-      doc.fontSize(11).fillColor('#6b7280').text(label + ':', 50, y);
+    // Helper function to add field with label and value (side-by-side)
+    const addField = (label, value, color = '#374151') => {
+      if (!value || value === 'N/A') return currentY; // Skip empty fields
+      checkPageBreak(18);
+      doc.fontSize(10).fillColor('#6b7280').text(label + ':', 50, currentY);
+      doc.fontSize(10).fillColor(color).text(value, 200, currentY);
+      currentY += 18; // More space between fields
+      return currentY;
+    };
+
+    // Helper function to add multiline text (side-by-side layout)
+    const addMultilineText = (label, text, maxWidth = 300) => {
+      if (!text || text.trim() === '') return currentY; // Skip empty text
       const textHeight = doc.heightOfString(text, { width: maxWidth });
-      doc.fontSize(10).fillColor('#374151').text(text, 50, y + 15, { width: maxWidth });
-      return y + textHeight + 25;
+      checkPageBreak(textHeight + 25);
+      doc.fontSize(10).fillColor('#6b7280').text(label + ':', 50, currentY);
+      doc.fontSize(9).fillColor('#374151').text(text, 200, currentY, { width: maxWidth });
+      currentY += Math.max(textHeight, 18) + 5; // Ensure minimum spacing
+      return currentY;
     };
 
     let currentY = 50;
@@ -358,142 +388,125 @@ export const generatePDFConfirmation = async (req, res, next) => {
 
 
 
-    // Company Header - Compact
-    doc.rect(50, currentY, 500, 50).fillColor('#f0fdfa').fill();
-    doc.rect(50, currentY, 500, 50).strokeColor('#0d9488').lineWidth(1).stroke();
+    // Company Header - Better Spaced
+    console.log('🚢 Generating PDF with Marine Services Center branding...');
+    doc.rect(50, currentY, 500, 40).fillColor('#f0fdfa').fill();
+    doc.rect(50, currentY, 500, 40).strokeColor('#0d9488').lineWidth(1).stroke();
     
-    // Logo placeholder (smaller)
-    doc.rect(60, currentY + 8, 35, 35).fillColor('#0d9488').fill();
-    doc.fontSize(6).fillColor('white').text('LOGO', 65, currentY + 20, { width: 25, align: 'center' });
+    // MSS logo
+    doc.rect(55, currentY + 7, 26, 26).fillColor('#0d9488').fill();
+    doc.fontSize(8).fillColor('white').text('MSS', 62, currentY + 15);
     
-    // Company details - compact
-    doc.fontSize(16).fillColor('#0d9488').text('Boat Service Management', 110, currentY + 8);
-    doc.fontSize(9).fillColor('#374151').text('Professional Marine Services', 110, currentY + 25);
-    doc.fontSize(8).fillColor('#6b7280').text('Email: info@boatservice.lk | Phone: +94 11 234 5678', 110, currentY + 35);
+    // Company details - left aligned next to logo
+    doc.fontSize(16).fillColor('#0d9488').text('Marine Services Center', 90, currentY + 8);
+    doc.fontSize(9).fillColor('#374151').text('Professional Boat Services', 90, currentY + 22);
+    doc.fontSize(8).fillColor('#6b7280').text('Email: info@boatservice.lk | Phone: +94 11 234 5678', 90, currentY + 32);
     
-    currentY += 70;
-
-    // Document Title
-    doc.fontSize(24).fillColor('#0d9488').text('Repair Service Confirmation', 50, currentY, { align: 'center' });
-    currentY += 40;
-
-    // Booking ID and Status (highlighted)
-    doc.rect(50, currentY, 500, 30).fillColor('#fef3c7').fill();
-    doc.fontSize(14).fillColor('#92400e').text(`Booking ID: ${repair.bookingId}`, 60, currentY + 8);
-    doc.fontSize(12).fillColor('#92400e').text(`Status: ${repair.status.toUpperCase()}`, 350, currentY + 10);
     currentY += 50;
 
+    // Document Title - Left aligned, good size
+    doc.fontSize(20).fillColor('#0d9488').text('Repair Service Confirmation', 50, currentY);
+    currentY += 30;
+
+    // Booking ID and Status (better spaced)
+    doc.rect(50, currentY, 500, 25).fillColor('#fef3c7').fill();
+    doc.fontSize(12).fillColor('#92400e').text(`Booking ID: ${repair.bookingId}`, 60, currentY + 7);
+    doc.fontSize(11).fillColor('#92400e').text(`Status: ${repair.status.toUpperCase()}`, 350, currentY + 8);
+    currentY += 35;
+
+    // PAGE 1: Essential Information (Priority Content)
+    
     // Customer Information Section
-    currentY = addSection('Customer Information', currentY);
-    currentY = addField('Full Name', repair.customer.name, currentY);
-    currentY = addField('Phone Number', repair.customer.phone, currentY);
-    currentY = addField('Email Address', repair.customer.email, currentY);
-    currentY += 20;
+    addSection('Customer Information');
+    addField('Full Name', repair.customer.name);
+    addField('Phone Number', repair.customer.phone);
+    addField('Email Address', repair.customer.email);
 
     // Boat Information Section
-    currentY = addSection('Boat Information', currentY);
-    currentY = addField('Boat Type', repair.boatDetails.boatType.replace('_', ' ').toUpperCase(), currentY);
-    currentY = addField('Make', repair.boatDetails.boatMake, currentY);
-    currentY = addField('Model', repair.boatDetails.boatModel, currentY);
-    currentY = addField('Year', repair.boatDetails.boatYear.toString(), currentY);
-    
-    if (repair.boatDetails.engineType) {
-      currentY = addField('Engine Type', repair.boatDetails.engineType.replace('_', ' ').toUpperCase(), currentY);
-    }
-    
-    if (repair.boatDetails.engineModel) {
-      currentY = addField('Engine Model', repair.boatDetails.engineModel, currentY);
-    }
-    
-    if (repair.boatDetails.hullMaterial) {
-      currentY = addField('Hull Material', repair.boatDetails.hullMaterial.replace('_', ' ').toUpperCase(), currentY);
-    }
-    currentY += 20;
+    addSection('Boat Information');
+    addField('Boat Type', repair.boatDetails.boatType.replace('_', ' ').toUpperCase());
+    addField('Make', repair.boatDetails.boatMake);
+    addField('Model', repair.boatDetails.boatModel);
+    addField('Year', repair.boatDetails.boatYear.toString());
+    addField('Engine Type', repair.boatDetails.engineType?.replace('_', ' ').toUpperCase());
+    addField('Engine Model', repair.boatDetails.engineModel);
+    addField('Hull Material', repair.boatDetails.hullMaterial?.replace('_', ' ').toUpperCase());
 
     // Service Information Section
-    currentY = addSection('Service Information', currentY);
-    currentY = addField('Service Type', repair.serviceType.replace('_', ' ').toUpperCase(), currentY);
-    
-    // Problem Description (multiline)
-    currentY = addMultilineText('Problem Description', repair.problemDescription, currentY);
-    
-    // Service Description (if exists)
-    if (repair.serviceDescription) {
-      currentY = addMultilineText('Service Requirements', repair.serviceDescription, currentY);
-    }
-    currentY += 20;
+    addSection('Service Information');
+    addField('Service Type', repair.serviceType.replace('_', ' ').toUpperCase());
+    addMultilineText('Problem Description', repair.problemDescription);
+    addMultilineText('Service Requirements', repair.serviceDescription);
 
     // Appointment Details Section
-    currentY = addSection('Appointment Details', currentY);
-    currentY = addField('Scheduled Date', repair.scheduledDateTime.toLocaleDateString('en-US', {
+    addSection('Appointment Details');
+    addField('Scheduled Date', repair.scheduledDateTime.toLocaleDateString('en-US', {
       weekday: 'long',
       year: 'numeric',
       month: 'long',
       day: 'numeric'
-    }), currentY);
-    currentY = addField('Scheduled Time', repair.scheduledDateTime.toLocaleTimeString('en-US', {
+    }));
+    addField('Scheduled Time', repair.scheduledDateTime.toLocaleTimeString('en-US', {
       hour: '2-digit',
       minute: '2-digit',
       hour12: true
-    }), currentY);
-    
-    if (repair.calendlyEventId) {
-      currentY = addField('Calendly Event ID', repair.calendlyEventId, currentY);
-    }
+    }));
     
     // Service Location
     if (repair.serviceLocation) {
       if (repair.serviceLocation.type === 'customer_location' && repair.serviceLocation.address) {
         const address = repair.serviceLocation.address;
         const fullAddress = `${address.street || ''}, ${address.city || ''}, ${address.district || ''} ${address.postalCode || ''}`.trim();
-        currentY = addField('Service Location', 'Customer Location', currentY);
-        if (fullAddress) {
-          currentY = addField('Address', fullAddress, currentY);
-        }
+        addField('Service Location', 'Customer Location');
+        addField('Address', fullAddress);
       } else if (repair.serviceLocation.type === 'marina' && repair.serviceLocation.marinaName) {
-        currentY = addField('Service Location', 'Marina', currentY);
-        currentY = addField('Marina Name', repair.serviceLocation.marinaName, currentY);
-        if (repair.serviceLocation.dockNumber) {
-          currentY = addField('Dock Number', repair.serviceLocation.dockNumber, currentY);
-        }
+        addField('Service Location', 'Marina');
+        addField('Marina Name', repair.serviceLocation.marinaName);
+        addField('Dock Number', repair.serviceLocation.dockNumber);
       } else if (repair.serviceLocation.type === 'service_center') {
-        currentY = addField('Service Location', 'Our Service Center - Colombo Marina', currentY);
+        addField('Service Location', 'Our Service Center - Colombo Marina');
       }
     }
-    currentY += 20;
+
+    // PAGE 2: Additional Information (Secondary Content)
+    
+    // Additional Requirements (Priority for Page 2)
+    if (repair.customerNotes) {
+      addSection('Additional Requirements');
+      addMultilineText('Customer Notes', repair.customerNotes);
+    }
 
     // Files Information Section
     if (repair.photos && repair.photos.length > 0) {
-      currentY = addSection('Files Uploaded', currentY);
-      currentY = addField('Number of Files', `${repair.photos.length} file(s)`, currentY);
+      addSection('Files Uploaded');
+      addField('Number of Files', `${repair.photos.length} file(s)`);
       
-      // List file names
-      repair.photos.forEach((photo, index) => {
-        currentY = addField(`File ${index + 1}`, photo.originalName, currentY);
+      // List file names (limit to first 3 to save space)
+      repair.photos.slice(0, 3).forEach((photo, index) => {
+        addField(`File ${index + 1}`, photo.originalName);
       });
-      currentY += 20;
-    }
-
-    // Additional Notes Section
-    if (repair.customerNotes) {
-      currentY = addSection('Additional Notes', currentY);
-      currentY = addMultilineText('Customer Notes', repair.customerNotes, currentY);
-      currentY += 20;
+      if (repair.photos.length > 3) {
+        addField('Additional Files', `${repair.photos.length - 3} more file(s)`);
+      }
     }
 
     // Assigned Technician (if any)
     if (repair.assignedTechnician) {
-      currentY = addSection('Assigned Technician', currentY);
-      currentY = addField('Technician Name', repair.assignedTechnician.name, currentY);
-      currentY = addField('Contact Email', repair.assignedTechnician.email, currentY);
-      currentY += 20;
+      addSection('Assigned Technician');
+      addField('Technician Name', repair.assignedTechnician.name);
+      addField('Contact Email', repair.assignedTechnician.email);
     }
 
-    // Footer - dynamic positioning to avoid overlap
-    const footerY = Math.max(currentY + 40, 750);
-    doc.rect(50, footerY, 500, 30).fillColor('#f9fafb').fill();
-    doc.fontSize(9).fillColor('#6b7280').text(`Generated on: ${new Date().toLocaleString('en-US')}`, 60, footerY + 10);
-    doc.fontSize(9).fillColor('#6b7280').text('Boat Service Management System - Professional Marine Services', 60, footerY + 20);
+    // Calendly Event ID (if exists)
+    if (repair.calendlyEventId) {
+      addField('Calendly Event ID', repair.calendlyEventId);
+    }
+
+    // Footer - Dynamic positioning
+    const footerY = Math.max(currentY + 20, pageHeight - 30);
+    doc.rect(50, footerY, 500, 25).fillColor('#f9fafb').fill();
+    doc.fontSize(8).fillColor('#6b7280').text(`Generated on: ${new Date().toLocaleString('en-US')}`, 55, footerY + 8);
+    doc.fontSize(8).fillColor('#6b7280').text('Marine Services Center - Professional Boat Services', 55, footerY + 16);
 
     // Finalize PDF
     doc.end();
@@ -820,7 +833,7 @@ export const getAllRepairsForEmployee = async (req, res, next) => {
 };
 
 // @desc    Get technicians list
-// @route   GET /api/users/technicians
+// @route   GET /api/boat-repairs/technicians
 // @access  Private (Employee/Admin)
 export const getTechnicians = async (req, res, next) => {
   try {
@@ -832,9 +845,9 @@ export const getTechnicians = async (req, res, next) => {
       });
     }
 
-    // Get all employees with technician positions
+    // Get employees with technician, mechanic, or repair positions
     const technicians = await User.find({
-      role: { $in: ['employee', 'admin'] },
+      role: 'employee',
       'employeeData.position': { $regex: /technician|mechanic|repair/i }
     }).select('name email employeeData.position employeeData.employeeId');
 
@@ -844,6 +857,7 @@ export const getTechnicians = async (req, res, next) => {
     });
 
   } catch (error) {
+    console.error('Error fetching technicians:', error);
     next(error);
   }
 };

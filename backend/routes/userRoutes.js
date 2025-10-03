@@ -1,7 +1,7 @@
 import express from 'express';
 import authMiddleware from '../middleware/auth.js';
 import { registerUser, loginUser, updateProfile, updatePassword, getUserProfile, getAllUsers, getAllUsersDebug, deleteUser, updateUser, searchUsers, getUserById, getDashboardStats } from '../controllers/userController.js';
-import { getUserRegistrationTrends, getUserDistribution, getGeographicDistribution, getServiceRequestsByType, getMonthlyServiceVolume, getRevenueTrends } from '../controllers/analyticsController.js';
+import { getUserRegistrationTrends, getUserDistribution, getGeographicDistribution, getServiceRequestsByType, getMonthlyServiceVolume, getRevenueTrends, getRepairStatusBreakdown, getTechnicianPerformance } from '../controllers/analyticsController.js';
 
 const router = express.Router();
 
@@ -21,6 +21,8 @@ router.get('/analytics/geographic-distribution', authMiddleware, getGeographicDi
 router.get('/analytics/service-requests-by-type', authMiddleware, getServiceRequestsByType);
 router.get('/analytics/monthly-service-volume', authMiddleware, getMonthlyServiceVolume);
 router.get('/analytics/revenue-trends', authMiddleware, getRevenueTrends);
+router.get('/analytics/repair-status-breakdown', authMiddleware, getRepairStatusBreakdown);
+router.get('/analytics/technician-performance', authMiddleware, getTechnicianPerformance);
 
 // Debug route - no auth required
 router.get('/debug/all', getAllUsersDebug);

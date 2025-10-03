@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaCog, FaUsers, FaChartBar, FaTools, FaShip, FaUserPlus, FaEye, FaEdit, FaTrash, FaDownload, FaUser, FaServer, FaArrowUp, FaList } from 'react-icons/fa';
+import { FaCog, FaUsers, FaChartBar, FaTools, FaShip, FaUserPlus, FaEye, FaEdit, FaTrash, FaDownload, FaUser, FaServer, FaArrowUp, FaList, FaWrench, FaDollarSign, FaBox, FaShoppingCart, FaFileAlt } from 'react-icons/fa';
 
 const AdminDashboard = ({ firstName }) => {
   const navigate = useNavigate();
@@ -9,7 +9,9 @@ const AdminDashboard = ({ firstName }) => {
     totalCustomers: 0,
     totalEmployees: 0,
     totalRides: 0,
-    totalRepairs: 0
+    totalRepairs: 0,
+    totalRevenue: 0,
+    totalProducts: 0
   });
 
   useEffect(() => {
@@ -49,14 +51,6 @@ const AdminDashboard = ({ firstName }) => {
       color: 'bg-gradient-to-br from-indigo-500 to-purple-500',
       route: '/admin/users',
       metric: `${dashboardStats.totalUsers} Total`
-    },
-    {
-      name: 'User Analytics',
-      icon: <FaChartBar />,
-      description: 'View user statistics and system analytics',
-      color: 'bg-gradient-to-br from-violet-500 to-purple-500',
-      route: '/admin/user-analytics',
-      metric: '98% Active'
     }
   ];
 
@@ -72,28 +66,28 @@ const AdminDashboard = ({ firstName }) => {
 
   const systemFeatures = [
     {
-      name: 'System Settings',
-      icon: <FaCog />,
-      description: 'Configure system-wide settings and preferences',
-      color: 'bg-gradient-to-br from-gray-600 to-purple-600',
-      route: '/admin/settings',
-      status: 'healthy'
+      name: 'Fleet Management',
+      icon: <FaShip />,
+      description: 'Manage boat catalog, categories, and specifications',
+      color: 'bg-gradient-to-br from-indigo-600 to-purple-600',
+      route: '/admin/boat-management',
+      status: 'monitoring'
     },
     {
-      name: 'Service Management',
-      icon: <FaTools />,
-      description: 'Manage all boat services and maintenance operations',
-      color: 'bg-gradient-to-br from-purple-500 to-violet-500',
-      route: '/admin/services',
+      name: 'Customer Support',
+      icon: <FaUsers />,
+      description: 'Manage customer support tickets and service requests',
+      color: 'bg-gradient-to-br from-teal-500 to-cyan-500',
+      route: '/support/admin',
       status: 'active'
     },
     {
-      name: 'Fleet Management',
-      icon: <FaShip />,
-      description: 'Oversee boat fleet and ride management operations',
-      color: 'bg-gradient-to-br from-indigo-600 to-purple-600',
-      route: '/admin/fleet',
-      status: 'monitoring'
+      name: 'Content Management',
+      icon: <FaFileAlt />,
+      description: 'Manage About page content, team members, and testimonials',
+      color: 'bg-gradient-to-br from-indigo-500 to-purple-500',
+      route: '/admin/content-management',
+      status: 'active'
     }
   ];
 
@@ -103,29 +97,58 @@ const AdminDashboard = ({ firstName }) => {
       icon: <FaUsers />,
       description: 'User registration trends, distribution, and geographic insights',
       color: 'bg-gradient-to-br from-blue-500 to-cyan-500',
-      route: '/admin/user-analytics'
+      route: '/admin/user-analytics',
+      metric: `${dashboardStats.totalUsers || 0} Total Users`
     },
     {
       name: 'Repair Analytics',
       icon: <FaTools />,
       description: 'Service request types, monthly volume, and repair insights',
       color: 'bg-gradient-to-br from-orange-500 to-red-500',
-      route: '/admin/repair-analytics'
+      route: '/admin/repair-analytics',
+      metric: `${dashboardStats.totalRepairs || 0} Total Repairs`
+    },
+    {
+      name: 'Boat Rides Analytics',
+      icon: <FaShip />,
+      description: 'Ride bookings, popular routes, and customer preferences',
+      color: 'bg-gradient-to-br from-teal-500 to-cyan-500',
+      route: '/admin/boat-rides-analytics',
+      metric: `${dashboardStats.totalRides || 0} Total Rides`
+    },
+    {
+      name: 'Boat Sales Analytics',
+      icon: <FaShip />,
+      description: 'Sales performance, popular models, and revenue trends',
+      color: 'bg-gradient-to-br from-green-500 to-emerald-500',
+      route: '/admin/boat-sales-analytics',
+      metric: '0 Total Sales'
+    },
+    {
+      name: 'Spare Parts Analytics',
+      icon: <FaWrench />,
+      description: 'Inventory management, sales performance, and stock optimization',
+      color: 'bg-gradient-to-br from-orange-500 to-yellow-500',
+      route: '/admin/spare-parts-analytics',
+      metric: `${dashboardStats.totalProducts || 0} Total Products`
     },
     {
       name: 'Financial Analytics',
       icon: <FaChartBar />,
       description: 'Revenue trends, payment insights, and financial performance',
-      color: 'bg-gradient-to-br from-green-500 to-emerald-500',
-      route: '/admin/financial-analytics'
+      color: 'bg-gradient-to-br from-purple-500 to-pink-500',
+      route: '/admin/financial-analytics',
+      metric: `Rs. ${(dashboardStats.totalRevenue || 0).toLocaleString()} Revenue`
     }
   ];
 
   const quickStats = [
-    { label: 'Total Customers', value: dashboardStats.totalCustomers.toString(), color: 'text-purple-600', bgColor: 'bg-purple-100', icon: <FaUsers /> },
-    { label: 'Total Employees', value: dashboardStats.totalEmployees.toString(), color: 'text-indigo-600', bgColor: 'bg-indigo-100', icon: <FaUserPlus /> },
-    { label: 'Total Repairs', value: dashboardStats.totalRepairs.toString(), color: 'text-violet-600', bgColor: 'bg-violet-100', icon: <FaTools /> },
-    { label: 'Total Rides', value: dashboardStats.totalRides.toString(), color: 'text-green-600', bgColor: 'bg-green-100', icon: <FaShip /> }
+    { label: 'Total Customers', value: (dashboardStats.totalCustomers || 0).toString(), color: 'text-purple-600', bgColor: 'bg-purple-100', icon: <FaUsers /> },
+    { label: 'Total Employees', value: (dashboardStats.totalEmployees || 0).toString(), color: 'text-indigo-600', bgColor: 'bg-indigo-100', icon: <FaUserPlus /> },
+    { label: 'Total Repairs', value: (dashboardStats.totalRepairs || 0).toString(), color: 'text-violet-600', bgColor: 'bg-violet-100', icon: <FaTools /> },
+    { label: 'Total Rides', value: (dashboardStats.totalRides || 0).toString(), color: 'text-green-600', bgColor: 'bg-green-100', icon: <FaShip /> },
+    { label: 'Total Boat Purchases', value: '0', color: 'text-blue-600', bgColor: 'bg-blue-100', icon: <FaShip /> },
+    { label: 'Total Spare Part Sales', value: '0', color: 'text-orange-600', bgColor: 'bg-orange-100', icon: <FaShoppingCart /> }
   ];
 
 
@@ -170,7 +193,7 @@ const AdminDashboard = ({ firstName }) => {
         </div>
 
         {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           {quickStats.map((stat, index) => (
             <div key={index} className="bg-white rounded-lg shadow-lg p-6 border-l-4 border-purple-400 hover:shadow-xl transition-shadow duration-300">
               <div className="flex items-center justify-between">
@@ -193,7 +216,7 @@ const AdminDashboard = ({ firstName }) => {
             <FaUsers className="mr-2 text-indigo-500" />
             User Management
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {userManagementFeatures.map((feature, index) => (
               <div
                 key={index}
@@ -227,7 +250,7 @@ const AdminDashboard = ({ firstName }) => {
             <FaChartBar className="mr-2 text-violet-500" />
             Analytics & Insights
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {analyticsFeatures.map((feature, index) => (
               <div
                 key={index}
@@ -239,6 +262,9 @@ const AdminDashboard = ({ firstName }) => {
                     <div className={`${feature.color} text-white p-3 rounded-lg group-hover:scale-110 transition-transform duration-300 shadow-lg`}>
                       {feature.icon}
                     </div>
+                    <span className="text-sm font-medium text-purple-600 bg-purple-100 px-3 py-1 rounded-full">
+                      {feature.metric}
+                    </span>
                   </div>
                   <h3 className="text-lg font-semibold text-gray-900 group-hover:text-purple-600 transition-colors">
                     {feature.name}
@@ -258,7 +284,7 @@ const AdminDashboard = ({ firstName }) => {
             <FaCog className="mr-2 text-violet-500" />
             System Features
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {systemFeatures.map((feature, index) => (
               <div
                 key={index}

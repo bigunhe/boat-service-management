@@ -41,9 +41,11 @@ const userSchema = new mongoose.Schema({
   // Password confirmation (not stored, only for validation)
   passwordConfirm: {
     type: String,
-    required: [true, 'Please confirm your password'],
+    required: false, // Not required for existing users
     validate: {
       validator: function(el) {
+        // Only validate if passwordConfirm is provided
+        if (!el) return true;
         return el === this.password;
       },
       message: 'Passwords do not match'

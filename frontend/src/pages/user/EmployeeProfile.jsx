@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { FaUser, FaEdit, FaSave, FaTimes, FaExclamationTriangle } from 'react-icons/fa';
 import ChangePassword from '../../components/ChangePassword';
 import { useAuth } from '../../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
 const SRI_LANKAN_DISTRICTS = [
@@ -14,6 +15,7 @@ const SRI_LANKAN_DISTRICTS = [
 
 const EmployeeProfile = () => {
   const { user, updateUser } = useAuth();
+  const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -293,6 +295,14 @@ const EmployeeProfile = () => {
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-white rounded-lg shadow-md p-8">
+          <div className="mb-4">
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="text-teal-600 hover:text-teal-700 text-sm font-medium"
+            >
+              ← Back to Dashboard
+            </button>
+          </div>
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center space-x-4">
               <div className="text-4xl text-teal-600">

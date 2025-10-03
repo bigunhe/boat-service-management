@@ -9,9 +9,10 @@ import {
   Title,
   Tooltip,
   Legend,
+  ArcElement,
 } from 'chart.js';
-import { Line, Bar } from 'react-chartjs-2';
-import { FaWrench, FaArrowLeft } from 'react-icons/fa';
+import { Line, Bar, Pie } from 'react-chartjs-2';
+import { FaWrench, FaArrowLeft, FaUsers, FaCheckCircle, FaClock, FaExclamationTriangle, FaTimesCircle } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 
 ChartJS.register(
@@ -22,7 +23,8 @@ ChartJS.register(
   BarElement,
   Title,
   Tooltip,
-  Legend
+  Legend,
+  ArcElement
 );
 
 const RepairAnalytics = () => {
@@ -30,7 +32,9 @@ const RepairAnalytics = () => {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState({
     serviceRequestsByType: [],
-    monthlyServiceVolume: []
+    monthlyServiceVolume: [],
+    repairStatusBreakdown: { allTime: [], currentMonth: [] },
+    technicianPerformance: []
   });
 
   useEffect(() => {
@@ -48,23 +52,33 @@ const RepairAnalytics = () => {
 
       const [
         serviceRequestsRes,
-        monthlyVolumeRes
+        monthlyVolumeRes,
+        statusBreakdownRes,
+        technicianPerformanceRes
       ] = await Promise.all([
         fetch('http://localhost:5001/api/users/analytics/service-requests-by-type', { headers }),
-        fetch('http://localhost:5001/api/users/analytics/monthly-service-volume', { headers })
+        fetch('http://localhost:5001/api/users/analytics/monthly-service-volume', { headers }),
+        fetch('http://localhost:5001/api/users/analytics/repair-status-breakdown', { headers }),
+        fetch('http://localhost:5001/api/users/analytics/technician-performance', { headers })
       ]);
 
       const [
         serviceRequests,
-        monthlyVolume
+        monthlyVolume,
+        statusBreakdown,
+        technicianPerformance
       ] = await Promise.all([
         serviceRequestsRes.json(),
-        monthlyVolumeRes.json()
+        monthlyVolumeRes.json(),
+        statusBreakdownRes.json(),
+        technicianPerformanceRes.json()
       ]);
 
       setData({
         serviceRequestsByType: serviceRequests.data || [],
-        monthlyServiceVolume: monthlyVolume.data || []
+        monthlyServiceVolume: monthlyVolume.data || [],
+        repairStatusBreakdown: statusBreakdown.data || { allTime: [], currentMonth: [] },
+        technicianPerformance: technicianPerformance.data || []
       });
     } catch (error) {
       console.error('Error fetching repair analytics:', error);
@@ -101,6 +115,63 @@ const RepairAnalytics = () => {
     ]
   };
 
+  // Status breakdown chart configuration
+  const statusBreakdownConfig = {
+    labels: data.repairStatusBreakdown.allTime.map(item => {
+      const statusLabels = {
+        'pending': 'Pending',
+        'assigned': 'Assigned',
+        'in_progress': 'In Progress',
+        'waiting_parts': 'Waiting Parts',
+        'completed': 'Completed',
+        'cancelled': 'Cancelled',
+        'rescheduled': 'Rescheduled'
+      };
+      return statusLabels[item._id] || item._id;
+    }),
+    datasets: [
+      {
+        label: 'Repair Status',
+        data: data.repairStatusBreakdown.allTime.map(item => item.count),
+        backgroundColor: [
+          '#F59E0B', // Pending - Yellow
+          '#3B82F6', // Assigned - Blue
+          '#10B981', // In Progress - Green
+          '#F97316', // Waiting Parts - Orange
+          '#059669', // Completed - Dark Green
+          '#EF4444', // Cancelled - Red
+          '#8B5CF6'  // Rescheduled - Purple
+        ],
+        borderWidth: 2,
+        borderColor: '#ffffff'
+      }
+    ]
+  };
+
+  // Helper function to get status icon
+  const getStatusIcon = (status) => {
+    switch (status) {
+      case 'pending': return <FaClock className="text-yellow-500" />;
+      case 'assigned': return <FaUsers className="text-blue-500" />;
+      case 'in_progress': return <FaWrench className="text-green-500" />;
+      case 'completed': return <FaCheckCircle className="text-green-600" />;
+      case 'cancelled': return <FaTimesCircle className="text-red-500" />;
+      default: return <FaExclamationTriangle className="text-gray-500" />;
+    }
+  };
+
+  // Helper function to get status color
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'pending': return 'bg-yellow-100 text-yellow-800';
+      case 'assigned': return 'bg-blue-100 text-blue-800';
+      case 'in_progress': return 'bg-green-100 text-green-800';
+      case 'completed': return 'bg-green-100 text-green-800';
+      case 'cancelled': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -125,6 +196,32 @@ const RepairAnalytics = () => {
             <h1 className="text-3xl font-bold text-gray-900">Repair Analytics</h1>
           </div>
           <p className="text-gray-600">Service request insights and repair volume trends</p>
+        </div>
+
+        {/* Status Overview Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          {data.repairStatusBreakdown.allTime.map((status, index) => {
+            const statusLabels = {
+              'pending': 'Pending',
+              'assigned': 'Assigned',
+              'in_progress': 'In Progress',
+              'waiting_parts': 'Waiting Parts',
+              'completed': 'Completed',
+              'cancelled': 'Cancelled',
+              'rescheduled': 'Rescheduled'
+            };
+            return (
+              <div key={index} className="bg-white p-6 rounded-lg shadow">
+                <div className="flex items-center">
+                  {getStatusIcon(status._id)}
+                  <div className="ml-3">
+                    <p className="text-sm font-medium text-gray-600">{statusLabels[status._id] || status._id}</p>
+                    <p className="text-2xl font-bold text-gray-900">{status.count}</p>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
 
         {/* Charts Grid */}
@@ -156,10 +253,29 @@ const RepairAnalytics = () => {
             </div>
           </div>
 
+          {/* Repair Status Breakdown */}
+          <div className="bg-white p-6 rounded-lg shadow">
+            <div className="flex items-center mb-4">
+              <FaUsers className="text-blue-600 mr-2" />
+              <h3 className="text-lg font-semibold">Repair Status Breakdown</h3>
+            </div>
+            <div className="h-64">
+              <Pie data={statusBreakdownConfig} options={{
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: {
+                    position: 'bottom',
+                  },
+                }
+              }} />
+            </div>
+          </div>
+
           {/* Monthly Service Volume */}
           <div className="bg-white p-6 rounded-lg shadow">
             <div className="flex items-center mb-4">
-              <FaWrench className="text-blue-600 mr-2" />
+              <FaWrench className="text-green-600 mr-2" />
               <h3 className="text-lg font-semibold">Monthly Service Volume</h3>
             </div>
             <div className="h-64">
@@ -182,10 +298,35 @@ const RepairAnalytics = () => {
               }} />
             </div>
           </div>
+
+          {/* Technician Performance */}
+          <div className="bg-white p-6 rounded-lg shadow">
+            <div className="flex items-center mb-4">
+              <FaUsers className="text-purple-600 mr-2" />
+              <h3 className="text-lg font-semibold">Technician Performance</h3>
+            </div>
+            <div className="space-y-3">
+              {data.technicianPerformance.slice(0, 5).map((tech, index) => (
+                <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div>
+                    <p className="font-medium text-gray-900">{tech._id.technicianName}</p>
+                    <p className="text-sm text-gray-500">{tech._id.position}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-medium text-gray-900">{tech.totalAssigned} assigned</p>
+                    <p className="text-sm text-gray-500">{tech.completionRate}% completion</p>
+                  </div>
+                </div>
+              ))}
+              {data.technicianPerformance.length === 0 && (
+                <p className="text-gray-500 text-center py-4">No technician data available</p>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Summary Stats */}
-        <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="bg-white p-6 rounded-lg shadow">
             <div className="flex items-center">
               <FaWrench className="text-orange-600 text-2xl mr-3" />
@@ -203,6 +344,15 @@ const RepairAnalytics = () => {
                 <p className="text-2xl font-bold text-gray-900">
                   {data.monthlyServiceVolume.reduce((sum, item) => sum + item.count, 0)}
                 </p>
+              </div>
+            </div>
+          </div>
+          <div className="bg-white p-6 rounded-lg shadow">
+            <div className="flex items-center">
+              <FaUsers className="text-purple-600 text-2xl mr-3" />
+              <div>
+                <p className="text-sm font-medium text-gray-600">Active Technicians</p>
+                <p className="text-2xl font-bold text-gray-900">{data.technicianPerformance.length}</p>
               </div>
             </div>
           </div>
@@ -247,6 +397,71 @@ const RepairAnalytics = () => {
                       </tr>
                     );
                   })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* Technician Performance Table */}
+        {data.technicianPerformance.length > 0 && (
+          <div className="mt-6 bg-white rounded-lg shadow">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h3 className="text-lg font-semibold">Technician Performance Details</h3>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Technician
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Position
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Total Assigned
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Completed
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      In Progress
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Completion Rate
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {data.technicianPerformance.map((tech, index) => (
+                    <tr key={index}>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        {tech._id.technicianName}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {tech._id.position}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {tech.totalAssigned}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {tech.completed}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {tech.inProgress}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          tech.completionRate >= 80 ? 'bg-green-100 text-green-800' :
+                          tech.completionRate >= 60 ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-red-100 text-red-800'
+                        }`}>
+                          {tech.completionRate}%
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>

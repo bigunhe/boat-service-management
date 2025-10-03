@@ -1518,43 +1518,6 @@ const RepairService = () => {
           </button>
           
           <div className="flex space-x-3">
-            {/* Development Test Button */}
-            <button
-              onClick={() => {
-                // Fill form with test data
-                setFormData({
-                  serviceType: 'engine_repair',
-                  boatType: 'speedboat',
-                  boatMake: 'Sea Ray',
-                  boatModel: '240 Sundancer',
-                  boatYear: '2020',
-                  engineType: 'inboard',
-                  engineModel: 'Mercury 250HP',
-                  hullMaterial: 'fiberglass',
-                  problemDescription: 'Engine is making strange noises and not starting properly. This is a test description for development purposes.',
-                  serviceDescription: 'Please check engine mounts and fuel system. Test service requirements.',
-                  photos: [],
-                  serviceLocation: {
-                    type: 'service_center',
-                    address: {
-                      street: '',
-                      city: '',
-                      district: '',
-                      postalCode: ''
-                    },
-                    marinaName: '',
-                    dockNumber: ''
-                  },
-                  customerNotes: ''
-                });
-                setErrors({});
-                setCurrentStep(2);
-              }}
-              className="px-4 py-2 bg-yellow-500 text-white rounded-lg font-medium hover:bg-yellow-600 transition-colors"
-            >
-              🧪 Test Data (Dev)
-            </button>
-            
             {currentStep === totalSteps ? (
               <button
                 onClick={submitRepairRequest}

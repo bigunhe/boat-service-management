@@ -38,6 +38,10 @@ router.route('/my-repairs')
 router.route('/stats')
   .get(getRepairStats);
 
+// Technician routes (must be before /:id routes)
+router.route('/technicians')
+  .get(getTechnicians); // Get technicians list
+
 // Individual repair routes
 router.route('/:id')
   .get(getBoatRepairById) // Get single repair by ID
@@ -67,10 +71,6 @@ router.route('/:id/pdf')
 // Employee repair management routes
 router.route('/employee/all')
   .get(authMiddleware, getAllRepairsForEmployee); // Get all repairs for employee management
-
-// Technician routes
-router.route('/technicians')
-  .get(authMiddleware, getTechnicians); // Get technicians list
 
 // Repair management routes
 router.route('/:id/assign-technician')

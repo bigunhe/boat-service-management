@@ -12,6 +12,24 @@ const Navbar = () => {
     navigate('/');
   };
 
+  const handleSupportClick = () => {
+    const userRole = user?.role;
+    
+    switch(userRole) {
+      case 'customer':
+        navigate('/support/customer');
+        break;
+      case 'employee':
+        navigate('/support/employee');
+        break;
+      case 'admin':
+        navigate('/support/admin');
+        break;
+      default:
+        navigate('/support/customer');
+    }
+  };
+
   return (
     <nav className="bg-white shadow-sm border-b">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -34,12 +52,12 @@ const Navbar = () => {
                 >
                   Dashboard
                 </Link>
-                <Link
-                  to="/support"
+                <button
+                  onClick={handleSupportClick}
                   className="text-gray-700 hover:text-teal-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
                 >
                   Support
-                </Link>
+                </button>
                 <Link
                   to={user?.role === 'admin' ? '/admin/profile' : user?.role === 'employee' ? '/employee/profile' : '/profile'}
                   className="text-gray-700 hover:text-teal-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
