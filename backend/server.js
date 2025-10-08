@@ -89,7 +89,6 @@ app.use('/api/contacts', contactFormRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/analytics', analyticsRoutes);
 
-
 // Global error handling middleware
 app.use((err, req, res, next) => {
   console.error('Error:', err.stack);

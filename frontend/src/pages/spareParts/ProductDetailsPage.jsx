@@ -46,7 +46,6 @@ const ProductDetailsPage = () => {
 
     //Trigger storage event so Navbar updates instantly
     window.dispatchEvent(new Event("storage"));
-
     //Show success message
     alert(`${selectedQty} x ${product.name} added to your cart.`);
   };
@@ -57,7 +56,6 @@ const ProductDetailsPage = () => {
     const url = `https://www.google.com/search?q=${query} about`;
     window.open(url, "_blank", "noopener,noreferrer");
   };
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
