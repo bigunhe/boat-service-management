@@ -212,7 +212,7 @@ const UserReviewsPage = () => {
                   {boat.category}
                 </Badge>
                 <Text fontSize="lg" color={useColorModeValue("gray.600", "gray.400")}>
-                  ${boat.price?.toLocaleString()}
+                  LKR {boat.price?.toLocaleString()}
                 </Text>
               </HStack>
             )}

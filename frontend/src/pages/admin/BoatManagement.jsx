@@ -21,7 +21,7 @@ import { Link } from "react-router-dom";
 import { useBoatStore } from "../../store/boat";
 import ProductCard from "../../components/ProductCard";
 /* eslint-disable react-hooks/rules-of-hooks */
-import { FaSearch, FaTimes, FaShip, FaChevronRight, FaComments, FaChartLine, FaPlus } from "react-icons/fa";
+import { FaSearch, FaTimes, FaShip, FaChevronRight, FaComments, FaChartLine, FaPlus, FaArrowLeft } from "react-icons/fa";
 
 const BoatManagement = () => {
   const { fetchBoats, boats } = useBoatStore();
@@ -118,6 +118,19 @@ const BoatManagement = () => {
     <Box minH="100vh" bg={useColorModeValue("gray.50", "gray.900")}>
     <Container maxW="container.xl" py={12}>
       <VStack spacing={8}>
+        {/* Back Button */}
+        <Box alignSelf="flex-start" mb={4}>
+          <Button
+            as={Link}
+            to="/dashboard"
+            leftIcon={<Icon as={FaArrowLeft} />}
+            variant="ghost"
+            colorScheme="blue"
+            size="sm"
+          >
+            Back to Dashboard
+          </Button>
+        </Box>
           {/* Header Section */}
           <VStack spacing={6} textAlign="center">
             <HStack spacing={4}>
@@ -129,7 +142,7 @@ const BoatManagement = () => {
                 bgGradient="linear(to-r, blue.500, cyan.400)"
                 bgClip="text"
               >
-                Admin Dashboard
+                Boat Management
               </Heading>
             </HStack>
             

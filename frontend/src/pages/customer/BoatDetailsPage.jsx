@@ -24,7 +24,7 @@ import {
 } from "@chakra-ui/react";
 import { useParams, Link, useLocation } from "react-router-dom";
 /* eslint-disable react-hooks/rules-of-hooks */
-import { FaShip, FaArrowLeft, FaPhone, FaEnvelope, FaStar, FaRuler, FaUsers, FaCog, FaGasPump } from "react-icons/fa";
+import { FaShip, FaArrowLeft, FaPhone, FaEnvelope, FaStar, FaRuler, FaUsers, FaCog, FaGasPump, FaCalendarAlt } from "react-icons/fa";
 // import { useBoatStore } from "../store/boat";
 import { useEffect, useState } from "react";
 // import StunningFooter from "../../components/StunningFooter";
@@ -37,9 +37,7 @@ const BoatDetailsPage = () => {
   const [boat, setBoat] = useState(null);
   
   // Detect if user came from admin context
-  const isFromAdmin = location.state?.fromAdmin || 
-    document.referrer.includes('/admin/boat-management') ||
-    window.history.length > 1 && document.referrer.includes('/admin/');
+  const isFromAdmin = location.state?.fromAdmin || false;
   // Get all color values at component level to avoid hooks rules violations
   const bg = useColorModeValue("white", "gray.800");
   const borderColor = useColorModeValue("gray.200", "gray.600");
@@ -87,7 +85,7 @@ const BoatDetailsPage = () => {
             to={isFromAdmin ? "/admin/boat-management" : "/boat-catalog"} 
             leftIcon={<Icon as={FaArrowLeft} />}
           >
-            Back to {isFromAdmin ? "Fleet Management" : "Boats"}
+            Back to {isFromAdmin ? "Fleet Management" : "Boat Catalog"}
           </Button>
         </VStack>
       </Container>
@@ -108,7 +106,7 @@ const BoatDetailsPage = () => {
             colorScheme="blue"
             size="sm"
           >
-            Back to {isFromAdmin ? "Fleet Management" : "Boat Categories"}
+            Back to {isFromAdmin ? "Fleet Management" : "Boat Catalog"}
           </Button>
         </Box>
 
@@ -179,7 +177,7 @@ const BoatDetailsPage = () => {
                   bgGradient="linear(to-r, blue.500, cyan.400)"
                   bgClip="text"
                 >
-                  ${boat.price?.toLocaleString()}
+                  LKR {boat.price?.toLocaleString()}
                 </Text>
                 <Text
                   fontSize="sm"
@@ -348,7 +346,7 @@ const BoatDetailsPage = () => {
             <Divider />
 
             {/* Action Buttons - Hide for admin context */}
-            {!isFromAdmin && (
+            {!isFromAdmin && boat && (
               <VStack spacing={4} align="stretch">
               <Button
                 colorScheme="blue"
@@ -374,6 +372,7 @@ const BoatDetailsPage = () => {
                 leftIcon={<Icon as={FaEnvelope} />}
                 py={6}
                 onClick={() => {
+                  if (!boat) return;
                   const subject = `Quote Request for ${boat.name}`;
                   const body = `Dear Boat Service Team,
 
@@ -382,7 +381,7 @@ I am interested in getting a quote for the ${boat.name} (${boat.category}).
 Boat Details:
 - Name: ${boat.name}
 - Category: ${boat.category}
-- Price: $${boat.price?.toLocaleString()}
+- Price: LKR {boat.price?.toLocaleString()}
 
 Please provide me with:
 - Detailed pricing breakdown
@@ -400,6 +399,25 @@ Best regards,
                 }}
               >
                 Request Quote
+              </Button>
+              
+              {/* Buy This Boat Button */}
+              <Button
+                as={Link}
+                to={boat ? `/book-appointment?boatId=${boat._id}&boatName=${encodeURIComponent(boat.name)}&boatCategory=${encodeURIComponent(boat.category)}` : '/book-appointment'}
+                colorScheme="green"
+                size="lg"
+                bgGradient="linear(to-r, green.500, teal.400)"
+                _hover={{
+                  bgGradient: "linear(to-r, green.600, teal.500)",
+                  transform: "translateY(-2px)",
+                  shadow: "lg"
+                }}
+                leftIcon={<Icon as={FaCalendarAlt} />}
+                fontWeight="bold"
+                py={6}
+              >
+               Book an Appointment to explore this Boat
               </Button>
               </VStack>
             )}

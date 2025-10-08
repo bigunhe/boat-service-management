@@ -6,6 +6,7 @@ const ShopCategory = () => {
   const [products, setProducts] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(""); // selected category
   const [categories, setCategories] = useState([]); // list of unique categories
+  const [searchQuery, setSearchQuery] = useState(""); // search query
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
@@ -36,13 +37,22 @@ const ShopCategory = () => {
     }
   };
 
-  // Filter products based on selected category
-  const filteredProducts =
-    selectedCategory === "" || selectedCategory === "All"
+  // Filter products based on selected category and search query
+  const filteredProducts = React.useMemo(() => {
+    const byCategory = selectedCategory === "" || selectedCategory === "All"
       ? products
       : products.filter(
           (p) => (p.category || "Uncategorized") === selectedCategory
         );
+    
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return byCategory;
+    
+    return byCategory.filter((p) =>
+      (p.name || "").toLowerCase().includes(q) || 
+      (p.partNumber || "").toLowerCase().includes(q)
+    );
+  }, [products, selectedCategory, searchQuery]);
 
   if (loading) {
     return (
@@ -68,20 +78,31 @@ const ShopCategory = () => {
               <span className="font-semibold">Showing {filteredProducts.length}</span> products
             </p>
 
-            {/* Category Selection */}
+            {/* Search and Category Selection */}
             {categories.length > 0 && (
-              <select
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">All Categories</option>
-                {categories.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat}
-                  </option>
-                ))}
-              </select>
+              <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+                <input
+                  type="text"
+                  placeholder="Search by name or part number"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  style={{ minWidth: "260px" }}
+                />
+                
+                <select
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">All Categories</option>
+                  {categories.map((cat) => (
+                    <option key={cat} value={cat}>
+                      {cat}
+                    </option>
+                  ))}
+                </select>
+              </div>
             )}
           </div>
         </div>

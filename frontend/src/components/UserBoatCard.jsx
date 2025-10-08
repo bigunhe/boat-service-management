@@ -113,7 +113,7 @@ const UserBoatCard = ({ boat }) => {
               transition: "all 0.3s ease"
             }}
           >
-            ${boat.price}
+            LKR {boat.price?.toLocaleString()}
           </Text>
           <Text
             fontSize="sm"

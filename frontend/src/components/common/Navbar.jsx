@@ -1,11 +1,27 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { FaUser, FaSignOutAlt, FaShip } from 'react-icons/fa';
+import cartIcon from '../../assets/cart_icon.png';
 
 const Navbar = () => {
   const { user, logout, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const [cartCount, setCartCount] = useState(0);
+
+  // Get cart from localStorage and calculate total
+  const updateCartCount = () => {
+    const cart = JSON.parse(localStorage.getItem("cart")) || [];
+    const total = cart.reduce((sum, item) => sum + item.selectedQty, 0);
+    setCartCount(total);
+  };
+
+  // Listen to localStorage changes to instantly update cart badge
+  useEffect(() => {
+    updateCartCount();
+    window.addEventListener("storage", updateCartCount);
+    return () => window.removeEventListener("storage", updateCartCount);
+  }, []);
 
   const handleLogout = () => {
     logout();
@@ -64,6 +80,25 @@ const Navbar = () => {
                 >
                   Profile
                 </Link>
+                
+                {/* Cart Icon - Only for Customers */}
+                {user?.role === 'customer' && (
+                  <div className="relative">
+                    <Link to="/cart" className="flex items-center">
+                      <img
+                        src={cartIcon}
+                        alt="Cart"
+                        className="w-8 h-8 hover:opacity-80 transition-opacity"
+                      />
+                      {cartCount > 0 && (
+                        <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
+                          {cartCount}
+                        </span>
+                      )}
+                    </Link>
+                  </div>
+                )}
+                
                 <div className="flex items-center space-x-2">
                   <div className="flex items-center space-x-2">
                     <FaUser className="text-teal-600" />

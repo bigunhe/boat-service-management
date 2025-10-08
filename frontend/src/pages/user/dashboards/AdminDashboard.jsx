@@ -138,7 +138,15 @@ const AdminDashboard = ({ firstName }) => {
       description: 'Revenue trends, payment insights, and financial performance',
       color: 'bg-gradient-to-br from-purple-500 to-pink-500',
       route: '/admin/financial-analytics',
-      metric: `Rs. ${(dashboardStats.totalRevenue || 0).toLocaleString()} Revenue`
+      metric: `LKR ${(dashboardStats.totalRevenue || 0).toLocaleString()} Revenue`
+    },
+    {
+      name: 'Review Management',
+      icon: <FaEye />,
+      description: 'Customer feedback analytics, review management, and insights',
+      color: 'bg-gradient-to-br from-yellow-500 to-orange-500',
+      route: '/admin/feedback',
+      metric: 'Review Analytics'
     }
   ];
 

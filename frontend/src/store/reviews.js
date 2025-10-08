@@ -6,9 +6,15 @@ export const useReviewsStore = create((set, get) => ({
 
   setUserEmail: (email) => set({ userEmail: email }),
 
+  // Test function to manually set reviews
+  setReviews: (newReviews) => {
+    console.log('Reviews Store: Manually setting reviews:', newReviews);
+    set({ reviews: newReviews });
+  },
+
   fetchReviews: async (boatId, userEmail = null, isAdmin = false) => {
     try {
-      let url = boatId ? `http://localhost:5000/api/reviews?boatId=${boatId}` : `http://localhost:5000/api/reviews`;
+      let url = boatId ? `http://localhost:5001/api/reviews?boatId=${boatId}` : `http://localhost:5001/api/reviews`;
       
       if (userEmail) {
         url += `&userEmail=${encodeURIComponent(userEmail)}`;
@@ -18,18 +24,31 @@ export const useReviewsStore = create((set, get) => ({
         url += `&admin=true`;
       }
       
+      console.log('Reviews Store: Fetching from URL:', url);
       const res = await fetch(url);
+      
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+      }
+      
       const data = await res.json();
-      if (!data.success) return;
+      console.log('Reviews Store: Response:', data);
+      
+      if (!data.success) {
+        console.error('Reviews Store: API returned success=false:', data.message);
+        return;
+      }
+      
+      console.log('Reviews Store: Setting reviews:', data.data);
       set({ reviews: data.data });
     } catch (e) {
-      console.error("Error fetching reviews", e.message);
+      console.error("Reviews Store: Error fetching reviews", e);
     }
   },
 
   addReview: async (review) => {
     try {
-      const res = await fetch(`http://localhost:5000/api/reviews`, {
+      const res = await fetch(`http://localhost:5001/api/reviews`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(review),
@@ -45,7 +64,7 @@ export const useReviewsStore = create((set, get) => ({
 
   deleteReview: async (id) => {
     try {
-      const res = await fetch(`http://localhost:5000/api/reviews/${id}`, { method: "DELETE" });
+      const res = await fetch(`http://localhost:5001/api/reviews/${id}`, { method: "DELETE" });
       const data = await res.json();
       if (!data.success) return { success: false, message: data.message };
       set((state) => ({ reviews: state.reviews.filter((r) => r._id !== id) }));

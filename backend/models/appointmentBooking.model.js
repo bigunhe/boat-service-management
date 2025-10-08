@@ -26,6 +26,7 @@ const appointmentSchema = new mongoose.Schema({
       'Maintenance',
       'Emergency Service',
       'Inspection',
+      'Boat Purchase Visit',
       'Other'
     ]
   },

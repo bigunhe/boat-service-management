@@ -17,6 +17,7 @@ import boatCatalogRoutes from './routes/boatCatalog.route.js';
 import appointmentBookingRoutes from './routes/appointmentBooking.route.js';
 import contactFormRoutes from './routes/contactForm.route.js';
 import reviewRoutes from './routes/review.route.js';
+import analyticsRoutes from './routes/analyticsRoutes.js';
 
 
 
@@ -86,6 +87,7 @@ app.use('/api/boats', boatCatalogRoutes);
 app.use('/api/appointments', appointmentBookingRoutes);
 app.use('/api/contacts', contactFormRoutes);
 app.use('/api/reviews', reviewRoutes);
+app.use('/api/analytics', analyticsRoutes);
 
 
 // Global error handling middleware

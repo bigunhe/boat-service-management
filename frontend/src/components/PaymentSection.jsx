@@ -39,10 +39,16 @@ const PaymentSection = ({ onPaymentComplete, isPaid = false, isLoading = false }
   const handlePaymentClick = () => {
     setPaymentStatus('processing');
     
-    // Simulate payment processing
+    // TODO: Replace this mock payment with real Stripe integration
+    // This is where you'll integrate with your friend's payment system
+    // Example flow:
+    // 1. Create Stripe payment intent
+    // 2. Redirect to Stripe checkout
+    // 3. Handle payment success/failure callbacks
+    // 4. Call onPaymentComplete() on success
+    
+    // Simulate payment processing (remove this when implementing real payment)
     setTimeout(() => {
-      // In real implementation, this would redirect to your friend's payment system
-      // For now, we'll simulate a successful payment
       setPaymentStatus('completed');
       onPaymentComplete && onPaymentComplete();
     }, 2000);

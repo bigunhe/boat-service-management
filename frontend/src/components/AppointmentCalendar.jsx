@@ -50,7 +50,7 @@ const AppointmentCalendar = ({ onDateSelect, selectedDate, disabled = false }) =
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`http://localhost:5000/api/appointments/calendar/${year}/${month + 1}`);
+      const response = await fetch(`http://localhost:5001/api/appointments/calendar/${year}/${month + 1}`);
       const data = await response.json();
       if (data.success) {
         setBookedDates(data.data.bookedDates || []);

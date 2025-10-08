@@ -52,6 +52,13 @@ const CustomerDashboard = ({ firstName }) => {
       route: '/my-rides'
     },
     { 
+      name: 'My Appointments', 
+      icon: <FaCalendarAlt />, 
+      description: 'View and manage your boat purchase appointments',
+      color: 'bg-gradient-to-br from-green-500 to-teal-500',
+      route: '/my-appointments'
+    },
+    { 
       name: 'My Repairs', 
       icon: <FaTools />, 
       description: 'View and manage your repair requests',

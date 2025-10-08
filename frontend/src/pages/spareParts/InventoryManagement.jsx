@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 const InventoryManagement = () => {
   const [products, setProducts] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState("All");
+  const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -31,11 +32,32 @@ const InventoryManagement = () => {
     return ["All", ...unique];
   }, [products]);
 
-  // Filter products based on selected category
+  // Detect low stock products (quantity < 10)
+  const lowStockProducts = React.useMemo(() => 
+    products.filter((p) => (Number(p.quantity) || 0) < 10), 
+    [products]
+  );
+
+  // Filter products based on selected category and search query
   const filteredProducts = React.useMemo(() => {
-    if (selectedCategory === "All") return products;
-    return products.filter((p) => p.category === selectedCategory);
-  }, [products, selectedCategory]);
+    let filtered = products;
+    
+    // Filter by category
+    if (selectedCategory !== "All") {
+      filtered = filtered.filter((p) => p.category === selectedCategory);
+    }
+    
+    // Filter by search query
+    const q = searchQuery.trim().toLowerCase();
+    if (q) {
+      filtered = filtered.filter((p) =>
+        (p.name || "").toLowerCase().includes(q) || 
+        (p.partNumber || "").toLowerCase().includes(q)
+      );
+    }
+    
+    return filtered;
+  }, [products, selectedCategory, searchQuery]);
 
   const handleDeleteProduct = async (productId) => {
     if (window.confirm('Are you sure you want to delete this product?')) {
@@ -75,27 +97,76 @@ const InventoryManagement = () => {
           <p className="text-gray-600">Manage boat spare parts inventory</p>
         </div>
 
-        {/* Filter + Create Button Row */}
-        <div className="flex justify-between items-center mb-8">
-          {categories.length > 1 && (
-            <select
-              className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-            >
-              {categories.map((cat) => (
-                <option key={cat} value={cat}>
-                  {cat}
-                </option>
-              ))}
-            </select>
-          )}
+        {/* Low Stock Alert */}
+        {lowStockProducts.length > 0 && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-red-800">
+                  Low Stock Alert
+                </h3>
+                <div className="mt-2 text-sm text-red-700">
+                  <p>
+                    {lowStockProducts.length} item{lowStockProducts.length !== 1 ? 's' : ''} {lowStockProducts.length !== 1 ? 'are' : 'is'} running low in stock (quantity &lt; 10).
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
-          <Link to="/inventory/create">
-            <button className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition-colors duration-300">
-              + Create Product
-            </button>
-          </Link>
+        {/* Filter + Search + Actions Row */}
+        <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center mb-8 gap-4">
+          <div className="flex flex-col sm:flex-row gap-4">
+            {/* Search Input */}
+            <input
+              type="text"
+              placeholder="Search by name or part number"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-64"
+            />
+            
+            {/* Category Filter */}
+            {categories.length > 1 && (
+              <select
+                className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+              >
+                {categories.map((cat) => (
+                  <option key={cat} value={cat}>
+                    {cat}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+
+          <div className="flex gap-4">
+            <Link to="/inventory/report">
+              <button className="bg-teal-600 text-white px-6 py-2 rounded-md hover:bg-teal-700 transition-colors duration-300 flex items-center">
+                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Generate Report
+              </button>
+            </Link>
+            
+            <Link to="/inventory/create">
+              <button className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition-colors duration-300 flex items-center">
+                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                Create Product
+              </button>
+            </Link>
+          </div>
         </div>
 
         {/* Products Grid */}
@@ -117,7 +188,21 @@ const InventoryManagement = () => {
                 <h3 className="font-semibold text-lg text-gray-900 mb-2">{product.name}</h3>
                 <p className="text-gray-600 text-sm mb-1">Part No: {product.partNumber}</p>
                 <p className="text-gray-600 text-sm mb-1">Company: {product.company}</p>
-                <p className="text-gray-600 text-sm mb-1">Available: {product.quantity}</p>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-gray-600 text-sm">Available:</span>
+                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                    Number(product.quantity) < 10 
+                      ? 'bg-red-100 text-red-800' 
+                      : 'bg-green-100 text-green-800'
+                  }`}>
+                    {product.quantity}
+                    {Number(product.quantity) < 10 && (
+                      <svg className="w-3 h-3 ml-1" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                      </svg>
+                    )}
+                  </span>
+                </div>
                 <p className="text-gray-600 text-sm mb-2">Category: {product.category || "Uncategorized"}</p>
                 <p className="text-blue-600 font-bold text-lg mb-4">Rs. {product.price.toLocaleString()}</p>
 

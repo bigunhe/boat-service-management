@@ -17,6 +17,7 @@ import ServiceInfo from './pages/public/ServiceInfo';
 import BoatCatalog from './pages/customer/BoatCatalog';
 import BoatDetailsPage from './pages/customer/BoatDetailsPage';
 import BookAppointment from './pages/customer/BookAppointment';
+import CustomerAppointmentsPage from './pages/customer/CustomerAppointmentsPage';
 import ContactPage from './pages/customer/ContactPage';
 
 // User Pages
@@ -45,8 +46,10 @@ import SparePartsStore from './pages/spareParts/SparePartsStore';
 import ShopCategory from './pages/spareParts/ShopCategory';
 import ProductDetailsPage from './pages/spareParts/ProductDetailsPage';
 import InventoryManagement from './pages/spareParts/InventoryManagement';
+import InventoryReport from './pages/spareParts/InventoryReport';
 import CreateProduct from './pages/spareParts/CreateProduct';
 import EditProduct from './pages/spareParts/EditProduct';
+import CartItems from './pages/cart/CartItems';
 import PaymentHistory from './pages/payment/PaymentHistory';
 
 // Employee Pages
@@ -74,6 +77,7 @@ import AdminAppointmentPage from './pages/admin/AdminAppointmentPage';
 import AdminChatDashboard from './pages/admin/AdminChatDashboard';
 import AdminReviewsPage from './pages/admin/AdminReviewsPage';
 import AdminAllReviewsPage from './pages/admin/AdminAllReviewsPage';
+import AdminFeedback from './pages/admin/AdminFeedback';
 import AdminAnalytics from './pages/admin/AdminAnalytics';
 import CreatePage from './pages/admin/CreatePage';
 import UserReviewsPage from './pages/customer/UserReviewsPage';
@@ -109,6 +113,7 @@ function App() {
         <Route path="/boat-details/:id" element={<BoatDetailsPage />} />
         <Route path="/boat-reviews/:id" element={<UserReviewsPage />} />
         <Route path="/book-appointment" element={<BookAppointment />} />
+        <Route path="/my-appointments" element={<CustomerAppointmentsPage />} />
         <Route path="/contact-form" element={<ContactPage />} />
         <Route path="/reviews" element={<UserReviewsPage />} />
               <Route path="/login" element={<Login />} />
@@ -128,6 +133,7 @@ function App() {
               <Route path="/boat-purchase" element={<ProtectedRoute><BoatPurchase /></ProtectedRoute>} />
               <Route path="/spare-parts" element={<ProtectedRoute><ShopCategory /></ProtectedRoute>} />
               <Route path="/spare-parts/:id" element={<ProtectedRoute><ProductDetailsPage /></ProtectedRoute>} />
+              <Route path="/cart" element={<ProtectedRoute requiredRole="customer"><CartItems /></ProtectedRoute>} />
               <Route path="/booking-confirmation/:bookingId" element={<ProtectedRoute><BookingConfirmation /></ProtectedRoute>} />
               <Route path="/my-bookings" element={<ProtectedRoute><MyBookings /></ProtectedRoute>} />
               <Route path="/my-repairs" element={<ProtectedRoute><MyRepairs /></ProtectedRoute>} />
@@ -143,6 +149,7 @@ function App() {
               <Route path="/employee/purchase-management" element={<ProtectedRoute requiredRole="employee"><PurchaseManagement /></ProtectedRoute>} />
               <Route path="/employee/spare-parts-management" element={<ProtectedRoute requiredRole="employee"><SparePartsManagement /></ProtectedRoute>} />
               <Route path="/inventory" element={<ProtectedRoute requiredRole="employee"><InventoryManagement /></ProtectedRoute>} />
+              <Route path="/inventory/report" element={<ProtectedRoute requiredRole="employee"><InventoryReport /></ProtectedRoute>} />
               <Route path="/inventory/create" element={<ProtectedRoute requiredRole="employee"><CreateProduct /></ProtectedRoute>} />
               <Route path="/inventory/edit/:id" element={<ProtectedRoute requiredRole="employee"><EditProduct /></ProtectedRoute>} />
               <Route path="/employee/profile" element={<ProtectedRoute requiredRole="employee"><EmployeeProfile /></ProtectedRoute>} />
@@ -166,7 +173,8 @@ function App() {
               <Route path="/admin/appointment-management" element={<ProtectedRoute requiredRole={["employee", "admin"]}><AdminAppointmentPage /></ProtectedRoute>} />
               <Route path="/admin/chat-support" element={<ProtectedRoute requiredRole={["employee", "admin"]}><AdminChatDashboard /></ProtectedRoute>} />
               <Route path="/admin/reviews" element={<ProtectedRoute requiredRole={["employee", "admin"]}><AdminAllReviewsPage /></ProtectedRoute>} />
-<Route path="/admin/reviews/:id" element={<ProtectedRoute requiredRole={["employee", "admin"]}><AdminReviewsPage /></ProtectedRoute>} />
+              <Route path="/admin/reviews/:id" element={<ProtectedRoute requiredRole={["employee", "admin"]}><AdminReviewsPage /></ProtectedRoute>} />
+              <Route path="/admin/feedback" element={<ProtectedRoute requiredRole="admin"><AdminFeedback /></ProtectedRoute>} />
               <Route path="/admin/analytics" element={<ProtectedRoute requiredRole="admin"><AdminAnalytics /></ProtectedRoute>} />
               
               {/* Support Routes */}

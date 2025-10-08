@@ -223,7 +223,7 @@ const ProductCard = ({ boat }) => {
           bgClip="text"
           mb={4}
         >
-          ${boat.price}
+          LKR {boat.price?.toLocaleString()}
         </Text>
 
         <HStack spacing={2} justify="center">

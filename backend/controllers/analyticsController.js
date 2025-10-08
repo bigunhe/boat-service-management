@@ -1,5 +1,8 @@
 import User from '../models/userModel.js';
 import BoatRepair from '../models/boatRepairModel.js';
+import Appointment from '../models/appointmentBooking.model.js';
+import Boat from '../models/productModel.js';
+import { UserVisit, CategoryView, Engagement } from '../models/analytics.model.js';
 
 // Get user registration trends
 export const getUserRegistrationTrends = async (req, res) => {
@@ -347,5 +350,256 @@ export const getTechnicianPerformance = async (req, res) => {
   } catch (error) {
     console.error('Error getting technician performance:', error);
     res.status(500).json({ success: false, message: 'Failed to get technician performance' });
+  }
+};
+
+// Get analytics dashboard data
+export const getAnalyticsDashboard = async (req, res) => {
+  try {
+    const { period = '30' } = req.query;
+    const days = parseInt(period);
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+
+    console.log('📊 Getting analytics dashboard data for', days, 'days');
+
+    // Get appointment metrics
+    const totalAppointments = await Appointment.countDocuments({
+      createdAt: { $gte: startDate }
+    });
+
+    const uniqueCustomers = await Appointment.distinct('customerEmail', {
+      createdAt: { $gte: startDate }
+    });
+
+    const completedAppointments = await Appointment.countDocuments({
+      status: 'completed',
+      createdAt: { $gte: startDate }
+    });
+
+    const pendingAppointments = await Appointment.countDocuments({
+      status: 'pending',
+      createdAt: { $gte: startDate }
+    });
+
+    // Get boat category performance
+    const categoryStats = await Appointment.aggregate([
+      {
+        $match: {
+          createdAt: { $gte: startDate }
+        }
+      },
+      {
+        $lookup: {
+          from: 'boats',
+          localField: 'boatId',
+          foreignField: '_id',
+          as: 'boat'
+        }
+      },
+      {
+        $unwind: '$boat'
+      },
+      {
+        $group: {
+          _id: '$boat.category',
+          totalViews: { $sum: 1 },
+          uniqueViewers: { $addToSet: '$customerEmail' },
+          averageTime: { $avg: '$estimatedDuration' }
+        }
+      },
+      {
+        $project: {
+          category: '$_id',
+          totalViews: 1,
+          uniqueViewers: { $size: '$uniqueViewers' },
+          averageTime: { $round: ['$averageTime', 2] }
+        }
+      },
+      {
+        $sort: { totalViews: -1 }
+      }
+    ]);
+
+    // Get top boats by appointments
+    const topBoats = await Appointment.aggregate([
+      {
+        $match: {
+          createdAt: { $gte: startDate }
+        }
+      },
+      {
+        $lookup: {
+          from: 'boats',
+          localField: 'boatId',
+          foreignField: '_id',
+          as: 'boat'
+        }
+      },
+      {
+        $unwind: '$boat'
+      },
+      {
+        $group: {
+          _id: '$boatId',
+          boatName: { $first: '$boat.name' },
+          views: { $sum: 1 }
+        }
+      },
+      {
+        $sort: { views: -1 }
+      },
+      {
+        $limit: 10
+      }
+    ]);
+
+    // Get user engagement levels (simplified)
+    const engagementStats = await Appointment.aggregate([
+      {
+        $match: {
+          createdAt: { $gte: startDate }
+        }
+      },
+      {
+        $group: {
+          _id: '$customerEmail',
+          appointmentCount: { $sum: 1 },
+          totalDuration: { $sum: '$estimatedDuration' }
+        }
+      },
+      {
+        $addFields: {
+          engagementLevel: {
+            $cond: [
+              { $gte: ['$appointmentCount', 3] },
+              'high',
+              {
+                $cond: [
+                  { $gte: ['$appointmentCount', 2] },
+                  'medium',
+                  'low'
+                ]
+              }
+            ]
+          }
+        }
+      },
+      {
+        $group: {
+          _id: '$engagementLevel',
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    // Calculate revenue (simplified - using estimated costs)
+    const revenueData = await Appointment.aggregate([
+      {
+        $match: {
+          status: 'completed',
+          createdAt: { $gte: startDate }
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          totalRevenue: { $sum: '$estimatedCost' }
+        }
+      }
+    ]);
+
+    const totalRevenue = revenueData[0]?.totalRevenue || 0;
+
+    res.json({
+      success: true,
+      data: {
+        metrics: {
+          totalVisitors: totalAppointments,
+          uniqueVisitors: uniqueCustomers.length,
+          returningVisitors: completedAppointments,
+          averageSessionDuration: 1800, // 30 minutes default
+          inquiries: pendingAppointments
+        },
+        categoryStats,
+        topBoats,
+        engagementStats,
+        revenue: totalRevenue
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Error getting analytics dashboard:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get analytics dashboard',
+      error: error.message
+    });
+  }
+};
+
+// Get real-time analytics
+export const getRealtimeAnalytics = async (req, res) => {
+  try {
+    const last5Minutes = new Date();
+    last5Minutes.setMinutes(last5Minutes.getMinutes() - 5);
+
+    console.log('📊 Getting real-time analytics');
+
+    // Get recent appointments
+    const recentAppointments = await Appointment.find({
+      createdAt: { $gte: last5Minutes }
+    })
+    .populate('boatId', 'name category')
+    .sort({ createdAt: -1 })
+    .limit(10);
+
+    // Get today's summary
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
+    const todayStats = await Appointment.aggregate([
+      {
+        $match: {
+          createdAt: { $gte: todayStart }
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          totalAppointments: { $sum: 1 },
+          uniqueCustomers: { $addToSet: '$customerEmail' }
+        }
+      }
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        recentVisits: recentAppointments.map(apt => ({
+          userName: apt.customerName,
+          userEmail: apt.customerEmail,
+          deviceType: 'desktop', // Default
+          visitDate: apt.createdAt
+        })),
+        recentViews: recentAppointments.map(apt => ({
+          boatName: apt.boatId?.name || 'Unknown Boat',
+          category: apt.boatId?.category || 'Unknown',
+          viewDate: apt.createdAt
+        })),
+        todayStats: todayStats[0] || { 
+          totalVisitors: 0, 
+          uniqueVisitors: [] 
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Error getting real-time analytics:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get real-time analytics',
+      error: error.message
+    });
   }
 };

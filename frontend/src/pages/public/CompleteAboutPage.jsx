@@ -463,7 +463,7 @@ const CompleteAboutPage = () => {
                 <Card bg={cardBg} border="2px solid" borderColor="green.300" _hover={{ borderColor: "green.400" }}>
                   <CardHeader textAlign="center">
                     <Heading size="lg" color="green.600">Basic Package</Heading>
-                    <Text color="green.500" fontWeight="bold" fontSize="xl">$299</Text>
+                    <Text color="green.500" fontWeight="bold" fontSize="xl">LKR 99,000</Text>
                   </CardHeader>
                   <CardBody>
                     <VStack spacing={3} align="stretch">
@@ -490,7 +490,7 @@ const CompleteAboutPage = () => {
                 <Card bg={cardBg} border="2px solid" borderColor="blue.300" _hover={{ borderColor: "blue.400" }}>
                   <CardHeader textAlign="center">
                     <Heading size="lg" color="blue.600">Premium Package</Heading>
-                    <Text color="blue.500" fontWeight="bold" fontSize="xl">$599</Text>
+                    <Text color="blue.500" fontWeight="bold" fontSize="xl">LKR 199,000</Text>
                   </CardHeader>
                   <CardBody>
                     <VStack spacing={3} align="stretch">
@@ -521,7 +521,7 @@ const CompleteAboutPage = () => {
                 <Card bg={cardBg} border="2px solid" borderColor="purple.300" _hover={{ borderColor: "purple.400" }}>
                   <CardHeader textAlign="center">
                     <Heading size="lg" color="purple.600">Ultimate Package</Heading>
-                    <Text color="purple.500" fontWeight="bold" fontSize="xl">$999</Text>
+                    <Text color="purple.500" fontWeight="bold" fontSize="xl">LKR 329,000</Text>
                   </CardHeader>
                   <CardBody>
                     <VStack spacing={3} align="stretch">

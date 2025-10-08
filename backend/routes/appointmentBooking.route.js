@@ -7,21 +7,25 @@ import {
   updateAppointment,
   getAvailableTimeSlots,
   updateAppointmentStatus,
-  getCalendarData
+  getCalendarData,
+  getCustomerAppointments,
+  updateCustomerAppointment,
+  deleteCustomerAppointment
 } from "../controllers/appointmentBooking.controller.js";
 
 const router = express.Router();
 
 // Basic CRUD operations
 router.get("/", getAppointments);
+router.get("/customer", getCustomerAppointments);
+router.get("/available-slots/:date", getAvailableTimeSlots);
+router.get("/calendar/:year/:month", getCalendarData);
 router.get("/:id", getAppointmentById);
 router.post("/", createAppointment);
 router.put("/:id", updateAppointment);
+router.put("/customer/:id", updateCustomerAppointment);
 router.delete("/:id", deleteAppointment);
-
-// Special appointment operations
-router.get("/available-slots/:date", getAvailableTimeSlots);
-router.get("/calendar/:year/:month", getCalendarData);
+router.delete("/customer/:id", deleteCustomerAppointment);
 router.patch("/:id/status", updateAppointmentStatus);
 
 export default router;

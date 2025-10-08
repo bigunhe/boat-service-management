@@ -30,11 +30,12 @@ import {
   ListIcon
 } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { useBoatStore } from "../../store/boat";
 import UserBoatCard from "../../components/UserBoatCard";
 import StunningFooter from "../../components/StunningFooter";
 import LiveChatWidget from "../../components/LiveChatWidget";
-import { FaShip, FaWater, FaAnchor, FaSearch, FaTimes, FaChevronRight } from "react-icons/fa";
+import { FaShip, FaWater, FaAnchor, FaSearch, FaTimes, FaChevronRight, FaArrowLeft } from "react-icons/fa";
 
 const BoatCatalog = () => {
   const { fetchBoats, boats } = useBoatStore();
@@ -139,6 +140,24 @@ const BoatCatalog = () => {
 
   return (
     <Box minH="100vh" bgGradient={bgGradient}>
+      {/* Back Button */}
+      <Box py={4} px={4}>
+        <Container maxW="container.xl">
+          <Box alignSelf="flex-start" mb={4}>
+            <Button
+              as={Link}
+              to="/dashboard"
+              leftIcon={<Icon as={FaArrowLeft} />}
+              variant="ghost"
+              colorScheme="blue"
+              size="sm"
+            >
+              Back to Dashboard
+            </Button>
+          </Box>
+        </Container>
+      </Box>
+
       {/* Hero Section */}
       <Box py={20} textAlign="center">
         <Container maxW="container.xl">

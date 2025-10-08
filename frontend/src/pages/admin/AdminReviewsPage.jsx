@@ -127,7 +127,7 @@ const AdminReviewsPage = () => {
                   Category: {boat.category || 'Not specified'}
                 </Badge>
                 <Text fontSize="lg" color={useColorModeValue("gray.600", "gray.400")}>
-                  Price: ${boat.price?.toLocaleString()}
+                  Price: LKR {boat.price?.toLocaleString()}
                 </Text>
               </HStack>
               {boat.model && (

@@ -22,6 +22,167 @@ export const getAppointments = async (req, res) => {
   }
 };
 
+// Get customer's own appointments
+export const getCustomerAppointments = async (req, res) => {
+  try {
+    const { customerEmail } = req.query;
+    
+    if (!customerEmail) {
+      return res.status(400).json({
+        success: false,
+        message: 'Customer email is required'
+      });
+    }
+    
+    const appointments = await Appointment.find({ customerEmail })
+      .sort({ appointmentDate: -1, appointmentTime: -1 })
+      .exec();
+
+    res.status(200).json({
+      success: true,
+      data: appointments
+    });
+
+  } catch (error) {
+    console.error('Get customer appointments error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch customer appointments',
+      error: error.message
+    });
+  }
+};
+
+// Update customer's own appointment
+export const updateCustomerAppointment = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updateData = req.body;
+    const { customerEmail } = req.query;
+    
+    if (!customerEmail) {
+      return res.status(400).json({
+        success: false,
+        message: 'Customer email is required'
+      });
+    }
+    
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(404).json({ 
+        success: false, 
+        message: "Invalid Appointment Id" 
+      });
+    }
+
+    // Find the appointment and verify it belongs to the customer
+    const appointment = await Appointment.findById(id);
+    if (!appointment) {
+      return res.status(404).json({ 
+        success: false, 
+        message: "Appointment not found" 
+      });
+    }
+
+    if (appointment.customerEmail !== customerEmail) {
+      return res.status(403).json({ 
+        success: false, 
+        message: "You can only edit your own appointments" 
+      });
+    }
+
+    // Only allow editing if status is Pending
+    if (appointment.status && appointment.status.toLowerCase() !== 'pending') {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Only pending appointments can be edited" 
+      });
+    }
+
+    // Update the appointment
+    const updatedAppointment = await Appointment.findByIdAndUpdate(
+      id, 
+      updateData, 
+      { new: true, runValidators: true }
+    );
+
+    res.status(200).json({
+      success: true,
+      data: updatedAppointment,
+      message: "Appointment updated successfully"
+    });
+
+  } catch (error) {
+    console.error('Update customer appointment error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update appointment',
+      error: error.message
+    });
+  }
+};
+
+// Delete customer's own appointment
+export const deleteCustomerAppointment = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { customerEmail } = req.query;
+    
+    if (!customerEmail) {
+      return res.status(400).json({
+        success: false,
+        message: 'Customer email is required'
+      });
+    }
+    
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(404).json({ 
+        success: false, 
+        message: "Invalid Appointment Id" 
+      });
+    }
+
+    // Find the appointment and verify it belongs to the customer
+    const appointment = await Appointment.findById(id);
+    if (!appointment) {
+      return res.status(404).json({ 
+        success: false, 
+        message: "Appointment not found" 
+      });
+    }
+
+    if (appointment.customerEmail !== customerEmail) {
+      return res.status(403).json({ 
+        success: false, 
+        message: "You can only delete your own appointments" 
+      });
+    }
+
+    // Only allow deleting if status is Pending
+    if (appointment.status && appointment.status.toLowerCase() !== 'pending') {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Only pending appointments can be cancelled" 
+      });
+    }
+
+    // Delete the appointment
+    await Appointment.findByIdAndDelete(id);
+
+    res.status(200).json({
+      success: true,
+      message: "Appointment cancelled successfully"
+    });
+
+  } catch (error) {
+    console.error('Delete customer appointment error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete appointment',
+      error: error.message
+    });
+  }
+};
+
 // Get appointment by ID
 export const getAppointmentById = async (req, res) => {
   const { id } = req.params;

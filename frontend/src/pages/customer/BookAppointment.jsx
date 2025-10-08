@@ -24,8 +24,9 @@ import {
   AlertTitle,
   AlertDescription,
 } from "@chakra-ui/react";
-import { useState } from "react";
-import { Link as RouterLink } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link as RouterLink, useSearchParams, useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
 import { 
   FaCalendarAlt,
   FaArrowLeft,
@@ -40,24 +41,43 @@ import AppointmentCalendar from "../../components/AppointmentCalendar";
 import PaymentSection from "../../components/PaymentSection";
 
 const UserAppointmentsPage = () => {
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const boatId = searchParams.get('boatId');
+  const boatName = searchParams.get('boatName');
+  const boatCategory = searchParams.get('boatCategory');
+  
   // Appointment booking form state
   const [appointmentData, setAppointmentData] = useState({
     customerName: "",
     customerEmail: "",
     customerPhone: "",
-    serviceType: "",
+    appointmentType: "Boat Purchase Visit",
     appointmentDate: "",
     appointmentTime: "",
     boatDetails: {
-      boatName: "",
-      boatType: "",
+      boatName: boatName || "",
+      boatType: boatCategory || "",
       boatLength: "",
       engineType: ""
     },
     description: "",
-    estimatedDuration: 2,
+    estimatedDuration: 1,
     priority: "Medium"
   });
+
+  // Auto-fill user data when component mounts
+  useEffect(() => {
+    if (user) {
+      setAppointmentData(prev => ({
+        ...prev,
+        customerName: user.name || "",
+        customerEmail: user.email || "",
+        customerPhone: user.phone || ""
+      }));
+    }
+  }, [user]);
 
   const [availableTimeSlots, setAvailableTimeSlots] = useState([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
@@ -95,20 +115,28 @@ const UserAppointmentsPage = () => {
     
     setLoadingSlots(true);
     try {
-      const response = await fetch(`http://localhost:5000/api/appointments/available-slots/${date}`);
+      const response = await fetch(`http://localhost:5001/api/appointments/available-slots/${date}`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
       const data = await response.json();
       if (data.success) {
-        setAvailableTimeSlots(data.data.availableSlots);
+        setAvailableTimeSlots(data.data.availableSlots || []);
+      } else {
+        throw new Error(data.message || 'Failed to fetch time slots');
       }
     } catch (error) {
       console.error('Error fetching time slots:', error);
       toast({
         title: 'Error',
-        description: 'Failed to fetch available time slots',
+        description: `Failed to fetch available time slots: ${error.message}`,
         status: 'error',
-        duration: 3000,
+        duration: 5000,
         isClosable: true,
       });
+      setAvailableTimeSlots([]);
     } finally {
       setLoadingSlots(false);
     }
@@ -137,6 +165,8 @@ const UserAppointmentsPage = () => {
   };
 
   // Handle payment completion
+  // This function is called by PaymentSection when payment is successful
+  // Currently using mock payment - will be replaced with real Stripe integration
   const handlePaymentComplete = () => {
     setPaymentCompleted(true);
     toast({
@@ -164,10 +194,10 @@ const UserAppointmentsPage = () => {
       return;
     }
 
-    if (!appointmentData.serviceType || !appointmentData.appointmentDate || !appointmentData.appointmentTime) {
+    if (!appointmentData.appointmentDate || !appointmentData.appointmentTime) {
       toast({
         title: "Missing Information",
-        description: "Please select service type, date, and time.",
+        description: "Please select date and time for your boat visit.",
         status: "warning",
         duration: 3000,
         isClosable: true,
@@ -189,7 +219,7 @@ const UserAppointmentsPage = () => {
     if (!appointmentData.description) {
       toast({
         title: "Missing Information",
-        description: "Please provide a description of the service needed.",
+        description: "Please provide additional details about your boat purchase interest.",
         status: "warning",
         duration: 3000,
         isClosable: true,
@@ -197,6 +227,8 @@ const UserAppointmentsPage = () => {
       return;
     }
 
+    // Payment validation - ensure payment is completed before form submission
+    // This ensures users can't book appointments without paying first
     if (!paymentCompleted) {
       toast({
         title: "Payment Required",
@@ -209,12 +241,18 @@ const UserAppointmentsPage = () => {
     }
 
     try {
-      const response = await fetch('http://localhost:5000/api/appointments', {
+      // Prepare appointment data for backend (convert appointmentType to serviceType)
+      const appointmentPayload = {
+        ...appointmentData,
+        serviceType: appointmentData.appointmentType, // Backend expects serviceType
+      };
+      
+      const response = await fetch('http://localhost:5001/api/appointments', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(appointmentData),
+        body: JSON.stringify(appointmentPayload),
       });
 
       const data = await response.json();
@@ -229,10 +267,10 @@ const UserAppointmentsPage = () => {
 
         // Reset form
         setAppointmentData({
-          customerName: "",
-          customerEmail: "",
-          customerPhone: "",
-          serviceType: "",
+          customerName: user?.name || "",
+          customerEmail: user?.email || "",
+          customerPhone: user?.phone || "",
+          appointmentType: "Boat Purchase Visit",
           appointmentDate: "",
           appointmentTime: "",
           boatDetails: {
@@ -242,12 +280,17 @@ const UserAppointmentsPage = () => {
             engineType: ""
           },
           description: "",
-          estimatedDuration: 2,
+          estimatedDuration: 1,
           priority: "Medium"
         });
         setAvailableTimeSlots([]);
         setSelectedDate("");
         setPaymentCompleted(false);
+        
+        // Redirect to appointments page after successful booking
+        setTimeout(() => {
+          navigate('/my-appointments');
+        }, 2000);
       } else {
         throw new Error(data.message);
       }
@@ -277,11 +320,11 @@ const UserAppointmentsPage = () => {
               bgGradient="linear(to-r, blue.500, cyan.400)"
               bgClip="text"
             >
-              Book Your Appointment
+              Book Your Boat Visit
             </Heading>
           </HStack>
           <Text fontSize="lg" color={useColorModeValue("gray.600", "gray.300")} maxW="2xl">
-            Schedule your boat service appointment online with our expert marine technicians
+            Schedule your boat visit to explore and purchase your dream boat
           </Text>
         </VStack>
 
@@ -289,13 +332,13 @@ const UserAppointmentsPage = () => {
         <Box>
           <Button
             as={RouterLink}
-            to="/"
+            to={boatId ? `/boat-details/${boatId}` : "/dashboard"}
             leftIcon={<Icon as={FaArrowLeft} />}
             variant="ghost"
             colorScheme="blue"
             size="sm"
           >
-            Back to Home
+            Back to {boatName ? `${boatName} Details` : "Dashboard"}
           </Button>
         </Box>
 
@@ -378,26 +421,17 @@ const UserAppointmentsPage = () => {
                   <HStack spacing={3} mb={4}>
                     <Icon as={FaCog} color="green.500" />
                     <Heading size="md" color={useColorModeValue("gray.700", "gray.300")}>
-                      Service Information
+                      Visit Information
                     </Heading>
                   </HStack>
                   <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
-                    <FormControl isRequired>
-                      <FormLabel>Service Type</FormLabel>
-                      <Select
-                        name="serviceType"
-                        value={appointmentData.serviceType}
-                        onChange={handleAppointmentInputChange}
-                        placeholder="Select service type"
-                      >
-                        <option value="General Service">General Service</option>
-                        <option value="Engine Repair">Engine Repair</option>
-                        <option value="Boat Cleaning">Boat Cleaning</option>
-                        <option value="Maintenance">Maintenance</option>
-                        <option value="Emergency Service">Emergency Service</option>
-                        <option value="Inspection">Inspection</option>
-                        <option value="Other">Other</option>
-                      </Select>
+                    <FormControl>
+                      <FormLabel>Visit Type</FormLabel>
+                      <Input
+                        value="Boat Purchase Visit"
+                        isReadOnly
+                        bg={useColorModeValue("gray.50", "gray.700")}
+                      />
                     </FormControl>
 
                     <FormControl>
@@ -476,6 +510,9 @@ const UserAppointmentsPage = () => {
                         ))}
                       </Select>
                       {loadingSlots && <Text fontSize="sm" color="blue.500">Loading available slots...</Text>}
+                      {!loadingSlots && appointmentData.appointmentDate && availableTimeSlots.length === 0 && (
+                        <Text fontSize="sm" color="red.500">No available time slots for this date</Text>
+                      )}
                     </FormControl>
                   </SimpleGrid>
                 </Box>
@@ -547,12 +584,12 @@ const UserAppointmentsPage = () => {
 
                 {/* Service Description */}
                 <FormControl isRequired>
-                  <FormLabel>Service Description</FormLabel>
+                  <FormLabel>Additional Details</FormLabel>
                   <Textarea
                     name="description"
                     value={appointmentData.description}
                     onChange={handleAppointmentInputChange}
-                    placeholder="Please provide detailed description of the service needed..."
+                    placeholder="Tell us about your boat purchase requirements, budget, or any specific questions..."
                     rows={4}
                   />
                 </FormControl>
@@ -625,8 +662,8 @@ const UserAppointmentsPage = () => {
                   <Text fontSize="sm" color="blue.600">We'll contact you within 24 hours to confirm your appointment</Text>
                 </VStack>
                 <VStack spacing={2}>
-                  <Text fontWeight="bold" color="blue.700">3. Service Day</Text>
-                  <Text fontSize="sm" color="blue.600">Our expert technicians will service your boat at the scheduled time</Text>
+                  <Text fontWeight="bold" color="blue.700">3. Visit Day</Text>
+                  <Text fontSize="sm" color="blue.600">Visit our showroom to explore and test your chosen boat</Text>
                 </VStack>
               </SimpleGrid>
             </VStack>
