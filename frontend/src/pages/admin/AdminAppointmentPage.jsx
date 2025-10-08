@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Box,
   Container,
@@ -58,9 +59,9 @@ import {
   FaExclamationTriangle,
   FaFilter,
   FaCreditCard,
-  FaRupeeSign,
   FaCheckCircle,
-  FaSpinner
+  FaSpinner,
+  FaArrowLeft
 } from 'react-icons/fa';
 
 const AdminAppointmentPage = () => {
@@ -85,7 +86,7 @@ const AdminAppointmentPage = () => {
   // Fetch appointments
   const fetchAppointments = async () => {
     try {
-      let url = 'http://localhost:5000/api/appointments';
+      let url = 'http://localhost:5001/api/appointments';
       const params = new URLSearchParams();
       
       if (filterStatus !== 'All') params.append('status', filterStatus);
@@ -120,7 +121,7 @@ const AdminAppointmentPage = () => {
   // Update appointment status
   const updateAppointmentStatus = async (id, status, adminNotes = '') => {
     try {
-      const response = await fetch(`http://localhost:5000/api/appointments/${id}/status`, {
+      const response = await fetch(`http://localhost:5001/api/appointments/${id}/status`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -157,7 +158,7 @@ const AdminAppointmentPage = () => {
   const deleteAppointment = async (id) => {
     if (window.confirm('Are you sure you want to delete this appointment?')) {
       try {
-        const response = await fetch(`http://localhost:5000/api/appointments/${id}`, {
+        const response = await fetch(`http://localhost:5001/api/appointments/${id}`, {
           method: 'DELETE',
         });
 
@@ -218,6 +219,20 @@ const AdminAppointmentPage = () => {
   return (
     <Container maxW="container.xl" py={8}>
       <VStack spacing={8} align="stretch">
+        {/* Back Button */}
+        <Box alignSelf="flex-start" mb={4}>
+          <Button
+            as={Link}
+            to="/dashboard"
+            leftIcon={<Icon as={FaArrowLeft} />}
+            variant="ghost"
+            colorScheme="blue"
+            size="sm"
+          >
+            Back to Dashboard
+          </Button>
+        </Box>
+        
         <Box textAlign="center">
           <Heading size="2xl" color={headingColor}>
             Appointment Management
@@ -333,10 +348,9 @@ const AdminAppointmentPage = () => {
                         </Td>
                         <Td>
                           <VStack align="start" spacing={1}>
-                            <HStack spacing={2}>
-                              <Icon as={FaRupeeSign} color="green.500" />
-                              <Text fontWeight="bold" color="green.600">2,000 LKR</Text>
-                            </HStack>
+                            <Text fontWeight="bold" color="green.600">
+                              {appointment.estimatedCost && appointment.estimatedCost > 0 ? `${appointment.estimatedCost.toLocaleString()} LKR` : '2,000 LKR'}
+                            </Text>
                             <Badge 
                               colorScheme={appointment.paymentStatus === 'completed' ? 'green' : 'red'}
                               size="sm"
@@ -499,7 +513,7 @@ const AdminAppointmentPage = () => {
                             {selectedAppointment.status}
                           </Badge>
                         </Text>
-                        <Text><strong>Estimated Cost:</strong> ${selectedAppointment.estimatedCost}</Text>
+                        <Text><strong>Estimated Cost:</strong> LKR {selectedAppointment.estimatedCost?.toLocaleString()}</Text>
                       </SimpleGrid>
                       <Text mt={4}><strong>Description:</strong> {selectedAppointment.description}</Text>
                     </CardBody>
@@ -534,12 +548,9 @@ const AdminAppointmentPage = () => {
                     <CardBody>
                       <SimpleGrid columns={2} spacing={4}>
                         <VStack align="start" spacing={2}>
-                          <HStack spacing={2}>
-                            <Icon as={FaRupeeSign} color="green.500" />
-                            <Text fontWeight="bold" color="green.600" fontSize="xl">
-                              2,000 LKR
-                            </Text>
-                          </HStack>
+                          <Text fontWeight="bold" color="green.600" fontSize="xl">
+                            {selectedAppointment.estimatedCost && selectedAppointment.estimatedCost > 0 ? `${selectedAppointment.estimatedCost.toLocaleString()} LKR` : '2,000 LKR'}
+                          </Text>
                           <Text fontSize="sm" color="gray.500">Service Fee</Text>
                         </VStack>
                         <VStack align="start" spacing={2}>
