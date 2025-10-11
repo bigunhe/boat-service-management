@@ -99,7 +99,7 @@ const CustomerAppointmentsPage = () => {
     try {
       setLoading(true);
       console.log('Fetching appointments for email:', user.email);
-      const response = await fetch(`http://localhost:5001/api/appointments/customer?customerEmail=${encodeURIComponent(user.email)}`);
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/appointments/customer?customerEmail=${encodeURIComponent(user.email)}`);
       
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -137,7 +137,7 @@ const CustomerAppointmentsPage = () => {
 
     setLoadingSlots(true);
     try {
-      const response = await fetch(`http://localhost:5001/api/appointments/available-slots/${date}`);
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/appointments/available-slots/${date}`);
       
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -221,7 +221,7 @@ const CustomerAppointmentsPage = () => {
     if (!editingAppointment || !user?.email) return;
 
     try {
-      const response = await fetch(`http://localhost:5001/api/appointments/customer/${editingAppointment._id}?customerEmail=${encodeURIComponent(user.email)}`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/appointments/customer/${editingAppointment._id}?customerEmail=${encodeURIComponent(user.email)}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -261,7 +261,7 @@ const CustomerAppointmentsPage = () => {
     if (!appointmentToDelete || !user?.email) return;
 
     try {
-      const response = await fetch(`http://localhost:5001/api/appointments/customer/${appointmentToDelete._id}?customerEmail=${encodeURIComponent(user.email)}`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/appointments/customer/${appointmentToDelete._id}?customerEmail=${encodeURIComponent(user.email)}`, {
         method: 'DELETE',
       });
 

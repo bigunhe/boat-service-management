@@ -118,7 +118,7 @@ const AdminFeedback = () => {
     fetchBoats();
     
     // Fetch reviews directly since Zustand store's fetchReviews is broken
-    fetch('http://localhost:5001/api/reviews?admin=true')
+    fetch(`${process.env.REACT_APP_API_URL}/reviews?admin=true`)
       .then(res => res.json())
       .then(data => {
         if (data.success) {

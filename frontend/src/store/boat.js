@@ -8,7 +8,7 @@ export const useBoatStore = create((set) => ({
   // ✅ fetch all boats from backend
   fetchBoats: async () => {
     try {
-      const res = await fetch("http://localhost:5001/api/boats");
+      const res = await fetch("${process.env.REACT_APP_API_URL}/boats");
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       
       const data = await res.json();
@@ -26,7 +26,7 @@ export const useBoatStore = create((set) => ({
   // ✅ action to create a boat
   createBoat: async (newBoat) => {
     try {
-      const res = await fetch("http://localhost:5001/api/boats", {
+      const res = await fetch("${process.env.REACT_APP_API_URL}/boats", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(newBoat),
@@ -47,7 +47,7 @@ export const useBoatStore = create((set) => ({
   // ✅ action to fetch boats
   fetchBoats: async () => {
     try {
-      const res = await fetch("http://localhost:5001/api/boats");
+      const res = await fetch("${process.env.REACT_APP_API_URL}/boats");
 
       if (!res.ok) {
         throw new Error(`Server error: ${res.status}`);
@@ -63,7 +63,7 @@ export const useBoatStore = create((set) => ({
   // ✅ action to delete boat
   deleteBoat: async (bid) => {
     try {
-      const res = await fetch(`http://localhost:5001/api/boats/${bid}`, {
+      const res = await fetch(`${process.env.REACT_APP_API_URL}/boats/${bid}`, {
         method: "DELETE",
       });
 
@@ -89,7 +89,7 @@ export const useBoatStore = create((set) => ({
   },
 
   updateBoat: async (bid, updatedBoat) => {
-    const res = await fetch(`http://localhost:5001/api/boats/${bid}`, {
+    const res = await fetch(`${process.env.REACT_APP_API_URL}/boats/${bid}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
