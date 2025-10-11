@@ -100,9 +100,9 @@ const ChangePassword = ({ onSuccess }) => {
     try {
       const token = localStorage.getItem('token');
       console.log('ChangePassword - Token:', token ? 'Token exists' : 'No token');
-      console.log('ChangePassword - Request URL:', 'http://localhost:5001/api/auth/change-password');
+      console.log('ChangePassword - Request URL:', `${process.env.REACT_APP_API_URL}/auth/change-password`);
       
-      const response = await fetch('http://localhost:5001/api/auth/change-password', {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/auth/change-password`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
