@@ -48,8 +48,10 @@ const PORT = process.env.PORT || 5001;
 app.use(helmet());
 
 // CORS middleware - allows frontend to communicate with backend
+const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3002';
+console.log('🔧 CORS Configuration:', { frontendUrl, nodeEnv: process.env.NODE_ENV });
 app.use(cors({
-  origin: [process.env.FRONTEND_URL || 'http://localhost:3002'],
+  origin: [frontendUrl],
   credentials: true
 }));
 

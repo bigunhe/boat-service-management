@@ -17,7 +17,7 @@ export const useBoatPackageStore = create((set, get) => ({
 	fetchPackages: async () => {
 		set({ loading: true, error: null });
 		try {
-			const response = await fetch('/api/boat-packages');
+			const response = await fetch(`${process.env.REACT_APP_API_URL}/api/boat-packages`);
 			const data = await response.json();
 			
 			if (data.success) {
@@ -34,7 +34,7 @@ export const useBoatPackageStore = create((set, get) => ({
 	fetchActivePackages: async () => {
 		set({ loading: true, error: null });
 		try {
-			const response = await fetch('/api/boat-packages/active');
+			const response = await fetch(`${process.env.REACT_APP_API_URL}/api/boat-packages/active`);
 			const data = await response.json();
 			
 			if (data.success) {
@@ -51,10 +51,11 @@ export const useBoatPackageStore = create((set, get) => ({
 	createPackage: async (packageData) => {
 		set({ loading: true, error: null });
 		try {
-			const response = await fetch('/api/boat-packages', {
+			const response = await fetch(`${process.env.REACT_APP_API_URL}/api/boat-packages`, {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
+					'Authorization': `Bearer ${localStorage.getItem('token')}`
 				},
 				body: JSON.stringify(packageData),
 			});
@@ -81,10 +82,11 @@ export const useBoatPackageStore = create((set, get) => ({
 	updatePackage: async (id, packageData) => {
 		set({ loading: true, error: null });
 		try {
-			const response = await fetch(`/api/boat-packages/${id}`, {
+			const response = await fetch(`${process.env.REACT_APP_API_URL}/api/boat-packages/${id}`, {
 				method: 'PUT',
 				headers: {
 					'Content-Type': 'application/json',
+					'Authorization': `Bearer ${localStorage.getItem('token')}`
 				},
 				body: JSON.stringify(packageData),
 			});
@@ -113,8 +115,11 @@ export const useBoatPackageStore = create((set, get) => ({
 	deletePackage: async (id) => {
 		set({ loading: true, error: null });
 		try {
-			const response = await fetch(`/api/boat-packages/${id}`, {
+			const response = await fetch(`${process.env.REACT_APP_API_URL}/api/boat-packages/${id}`, {
 				method: 'DELETE',
+				headers: {
+					'Authorization': `Bearer ${localStorage.getItem('token')}`
+				}
 			});
 			
 			const data = await response.json();
