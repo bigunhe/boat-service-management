@@ -86,7 +86,7 @@ const AdminAppointmentPage = () => {
   // Fetch appointments
   const fetchAppointments = async () => {
     try {
-      let url = 'http://localhost:5001/api/appointments';
+      let url = `${process.env.REACT_APP_API_URL}/appointments`;
       const params = new URLSearchParams();
       
       if (filterStatus !== 'All') params.append('status', filterStatus);
@@ -121,7 +121,7 @@ const AdminAppointmentPage = () => {
   // Update appointment status
   const updateAppointmentStatus = async (id, status, adminNotes = '') => {
     try {
-      const response = await fetch(`http://localhost:5001/api/appointments/${id}/status`, {
+        const response = await fetch(`${process.env.REACT_APP_API_URL}/appointments/${id}/status`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -158,7 +158,7 @@ const AdminAppointmentPage = () => {
   const deleteAppointment = async (id) => {
     if (window.confirm('Are you sure you want to delete this appointment?')) {
       try {
-        const response = await fetch(`http://localhost:5001/api/appointments/${id}`, {
+        const response = await fetch(`${process.env.REACT_APP_API_URL}/appointments/${id}`, {
           method: 'DELETE',
         });
 

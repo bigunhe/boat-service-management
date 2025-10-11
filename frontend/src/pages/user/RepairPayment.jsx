@@ -26,7 +26,7 @@ const RepairPayment = () => {
       setLoading(true);
       const token = localStorage.getItem('token');
       
-      const response = await fetch(`http://localhost:5001/api/boat-repairs/${id}`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/boat-repairs/${id}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -65,7 +65,7 @@ const RepairPayment = () => {
       const token = localStorage.getItem('token');
       console.log('Token being sent:', token ? token.substring(0, 20) + '...' : 'No token');
       
-      const response = await fetch(`http://localhost:5001/api/repair-costs/${repair.bookingId}/final-payment`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/repair-costs/${repair.bookingId}/final-payment`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

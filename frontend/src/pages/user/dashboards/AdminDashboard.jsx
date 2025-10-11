@@ -25,7 +25,7 @@ const AdminDashboard = ({ firstName }) => {
       const token = localStorage.getItem('token');
       console.log('🔍 Fetching dashboard stats with token:', token ? 'Present' : 'Missing');
       
-      const response = await fetch('http://localhost:5001/api/users/stats', {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/users/stats`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }

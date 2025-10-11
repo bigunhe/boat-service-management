@@ -35,7 +35,7 @@ const EmployeeDashboard = () => {
   // Initialize socket and load notifications
   useEffect(() => {
     if (user) {
-      const newSocket = io('http://localhost:5001');
+      const newSocket = io(process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:5001');
       setSocket(newSocket);
 
       // Request notifications for admin
@@ -60,7 +60,7 @@ const EmployeeDashboard = () => {
 
   const loadNotificationCount = async () => {
     try {
-      const response = await fetch(`http://localhost:5001/api/chat/notifications/admin`);
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/chat/notifications/admin`);
       const data = await response.json();
       if (data.success) {
         setUnreadCount(data.data.unreadCount);

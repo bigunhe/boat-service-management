@@ -51,7 +51,7 @@ const RepairManagementDetail = () => {
       setLoading(true);
       const token = localStorage.getItem('token');
       
-      const response = await fetch(`http://localhost:5001/api/boat-repairs/${id}`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/boat-repairs/${id}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -82,7 +82,7 @@ const RepairManagementDetail = () => {
     try {
       const token = localStorage.getItem('token');
       
-      const response = await fetch('http://localhost:5001/api/boat-repairs/technicians', {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/boat-repairs/technicians`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -108,7 +108,7 @@ const RepairManagementDetail = () => {
     try {
       const token = localStorage.getItem('token');
       
-      const response = await fetch(`http://localhost:5001/api/repair-costs/cost-options/${serviceType}`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/repair-costs/cost-options/${serviceType}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -132,7 +132,7 @@ const RepairManagementDetail = () => {
       setIsSendingInvoice(true);
       const token = localStorage.getItem('token');
       
-      const response = await fetch(`http://localhost:5001/api/repair-costs/${repair._id}/send-invoice`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/repair-costs/${repair._id}/send-invoice`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -176,7 +176,7 @@ const RepairManagementDetail = () => {
       setIsUpdating(true);
       const token = localStorage.getItem('token');
       
-      const response = await fetch(`http://localhost:5001/api/boat-repairs/${id}/assign-technician`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/boat-repairs/${id}/assign-technician`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -212,7 +212,7 @@ const RepairManagementDetail = () => {
       setIsUpdating(true);
       const token = localStorage.getItem('token');
       
-      const response = await fetch(`http://localhost:5001/api/boat-repairs/${id}/mark-received`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/boat-repairs/${id}/mark-received`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -251,7 +251,7 @@ const RepairManagementDetail = () => {
       setIsUpdating(true);
       const token = localStorage.getItem('token');
       
-      const response = await fetch(`http://localhost:5001/api/boat-repairs/${id}/update-status`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/boat-repairs/${id}/update-status`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,

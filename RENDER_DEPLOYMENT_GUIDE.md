@@ -35,7 +35,7 @@ Set these in Render dashboard:
 ```env
 NODE_ENV=production
 PORT=10000
-MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/boat-service-management
+MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/boat_service_management_test
 JWT_SECRET=your-super-secret-jwt-key-here
 JWT_EXPIRES_IN=7d
 FRONTEND_URL=https://boat-service-frontend.onrender.com
