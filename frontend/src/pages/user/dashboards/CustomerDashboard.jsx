@@ -239,14 +239,6 @@ const CustomerDashboard = ({ firstName }) => {
       route: '/payment-summary'
     },
     { 
-      name: 'Notifications', 
-      icon: <FaBell />, 
-      description: 'View your notifications and messages',
-      color: 'bg-gradient-to-br from-purple-500 to-pink-500',
-      route: '/notifications',
-      badge: unreadCount > 0 ? unreadCount : null
-    },
-    { 
       name: 'Order Tracking', 
       icon: <FaShoppingCart />, 
       description: 'Track your spare parts orders and status',

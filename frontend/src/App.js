@@ -30,7 +30,6 @@ import CustomerProfile from './pages/user/CustomerProfile';
 import Dashboard from './pages/user/dashboards/Dashboard';
 import AdminDashboard from './pages/user/dashboards/AdminDashboard';
 import MyBookings from './pages/user/MyBookings';
-import Notifications from './pages/user/Notifications';
 import MyRepairs from './pages/user/MyRepairs';
 import RepairDetails from './pages/user/RepairDetails';
 import RepairPayment from './pages/user/RepairPayment';
@@ -171,7 +170,6 @@ function App() {
               <Route path="/my-orders" element={<ProtectedRoute requiredRole="customer"><OrderTracking /></ProtectedRoute>} />
               <Route path="/booking-confirmation/:bookingId" element={<ProtectedRoute><BookingConfirmation /></ProtectedRoute>} />
               <Route path="/my-bookings" element={<ProtectedRoute><MyBookings /></ProtectedRoute>} />
-              <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
               <Route path="/my-repairs" element={<ProtectedRoute><MyRepairs /></ProtectedRoute>} />
               <Route path="/repair-details/:id" element={<ProtectedRoute><RepairDetails /></ProtectedRoute>} />
               <Route path="/repair-payment/:id" element={<ProtectedRoute><RepairPayment /></ProtectedRoute>} />
