@@ -15,13 +15,19 @@ const InventoryManagement = () => {
   const fetchProducts = async () => {
     try {
       const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
+      console.log('🔍 Fetching products from:', `${API_BASE_URL}/api/products`);
       const response = await fetch(`${API_BASE_URL}/api/products`);
+      console.log('📡 Products response status:', response.status);
       const data = await response.json();
+      console.log('📡 Products response data:', data);
       if (data.success) {
+        console.log('✅ Products loaded:', data.data.length, 'items');
         setProducts(data.data);
+      } else {
+        console.error('❌ Products API returned error:', data.message);
       }
     } catch (error) {
-      console.error('Error fetching products:', error);
+      console.error('❌ Error fetching products:', error);
     } finally {
       setLoading(false);
     }
