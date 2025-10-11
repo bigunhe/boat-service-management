@@ -79,7 +79,7 @@ const CustomerChat = () => {
   // Initialize socket connection
   useEffect(() => {
     console.log('🔌 Customer initializing Socket.io connection...');
-    const newSocket = io('http://localhost:5001', {
+    const newSocket = io(process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:5001', {
       transports: ['websocket', 'polling'],
       timeout: 20000,
     });
@@ -166,7 +166,7 @@ const CustomerChat = () => {
     if (!user || !chatId) return;
     
     try {
-      await fetch(`http://localhost:5001/api/chat/notifications/${user.email}/read`, {
+      await fetch(`${process.env.REACT_APP_API_URL}/chat/notifications/${user.email}/read`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -199,7 +199,7 @@ const CustomerChat = () => {
 
     setIsLoading(true);
     try {
-      const response = await fetch('http://localhost:5001/api/chat/chat/create', {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/chat/chat/create`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -244,7 +244,7 @@ const CustomerChat = () => {
   // Load existing messages
   const loadMessages = async (chatId) => {
     try {
-      const response = await fetch(`http://localhost:5001/api/chat/chat/${chatId}/messages`);
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/chat/chat/${chatId}/messages`);
       const data = await response.json();
       if (data.success) {
         setMessages(data.data);
@@ -265,7 +265,7 @@ const CustomerChat = () => {
     try {
       console.log('📤 Customer sending message:', { chatId, message: messageText });
       
-      const response = await fetch(`http://localhost:5001/api/chat/chat/${chatId}/message`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/chat/chat/${chatId}/message`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

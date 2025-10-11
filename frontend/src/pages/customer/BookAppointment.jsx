@@ -115,7 +115,8 @@ const UserAppointmentsPage = () => {
     
     setLoadingSlots(true);
     try {
-      const response = await fetch(`http://localhost:5001/api/appointments/available-slots/${date}`);
+
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/appointments/available-slots/${date}`);
       
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -247,7 +248,7 @@ const UserAppointmentsPage = () => {
         serviceType: appointmentData.appointmentType, // Backend expects serviceType
       };
       
-      const response = await fetch('http://localhost:5001/api/appointments', {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/appointments`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

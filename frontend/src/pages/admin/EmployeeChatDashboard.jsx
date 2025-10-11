@@ -63,7 +63,7 @@ const EmployeeChatDashboard = () => {
   // Initialize socket connection
   useEffect(() => {
     console.log('🔌 Employee initializing Socket.io connection...');
-    const newSocket = io('http://localhost:5001', {
+    const newSocket = io(process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:5001', {
       transports: ['websocket', 'polling'],
       timeout: 20000,
     });
@@ -146,7 +146,7 @@ const EmployeeChatDashboard = () => {
 
   const markNotificationsAsRead = async () => {
     try {
-      await fetch(`http://localhost:5001/api/chat/notifications/admin/read`, {
+      await fetch(`${process.env.REACT_APP_API_URL}/chat/notifications/admin/read`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -163,7 +163,7 @@ const EmployeeChatDashboard = () => {
     try {
       setIsLoadingChats(true);
       console.log('📋 Loading chats...');
-      const response = await fetch('http://localhost:5001/api/chat/admin/chats');
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/chat/admin/chats`);
       const data = await response.json();
       console.log('📋 Chats response:', data);
       
@@ -211,7 +211,7 @@ const EmployeeChatDashboard = () => {
   // Load messages for selected chat
   const loadMessages = async (chatId) => {
     try {
-      const response = await fetch(`http://localhost:5001/api/chat/chat/${chatId}/messages`);
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/chat/chat/${chatId}/messages`);
       const data = await response.json();
       if (data.success) {
         setMessages(data.data);
@@ -225,7 +225,7 @@ const EmployeeChatDashboard = () => {
   // Mark messages as read
   const markMessagesAsRead = async (chatId) => {
     try {
-      await fetch(`http://localhost:5001/api/chat/chat/${chatId}/read`, {
+      await fetch(`${process.env.REACT_APP_API_URL}/chat/chat/${chatId}/read`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -247,7 +247,7 @@ const EmployeeChatDashboard = () => {
     try {
       console.log('📤 Employee sending message:', { chatId: selectedChat._id, message: messageText });
 
-      const response = await fetch(`http://localhost:5001/api/chat/chat/${selectedChat._id}/message`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/chat/chat/${selectedChat._id}/message`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

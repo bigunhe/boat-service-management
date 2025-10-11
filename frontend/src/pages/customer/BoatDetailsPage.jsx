@@ -54,7 +54,7 @@ const BoatDetailsPage = () => {
     // Fetch the specific boat by ID from the backend
     const fetchBoatDetails = async () => {
       try {
-        const res = await fetch(`http://localhost:5001/api/boats/${id}`);
+        const res = await fetch(`${process.env.REACT_APP_API_URL}/boats/${id}`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         
         const data = await res.json();

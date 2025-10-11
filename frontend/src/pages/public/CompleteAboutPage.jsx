@@ -57,7 +57,7 @@ const CompleteAboutPage = () => {
     const fetchAboutData = async () => {
       try {
         setLoading(true);
-        const response = await fetch('http://localhost:5001/api/about');
+        const response = await fetch(`${process.env.REACT_APP_API_URL}/about`);
         const result = await response.json();
         
         if (result.success) {

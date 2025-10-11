@@ -32,7 +32,7 @@ const AdminAnalytics = () => {
       setLoading(true);
       console.log('📊 Loading analytics data...');
       
-      const response = await fetch(`http://localhost:5001/api/analytics/dashboard?period=${selectedPeriod}`);
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/analytics/dashboard?period=${selectedPeriod}`);
       const data = await response.json();
       
       if (data.success) {
@@ -58,7 +58,7 @@ const AdminAnalytics = () => {
   // Load real-time data
   const loadRealtimeData = async () => {
     try {
-      const response = await fetch('http://localhost:5001/api/analytics/realtime');
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/analytics/realtime`);
       const data = await response.json();
       
       if (data.success) {
