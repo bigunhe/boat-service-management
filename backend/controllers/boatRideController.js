@@ -1,4 +1,5 @@
 import BoatRide from '../models/boatRideModel.js';
+import BoatBooking from '../models/boatBooking.model.js';
 
 // Create a new boat ride booking
 const createBoatRide = async (req, res) => {
@@ -91,17 +92,40 @@ const getMyBookings = async (req, res) => {
   try {
     const { status, page = 1, limit = 10 } = req.query;
     
-    const query = { customerId: req.user.id };
+    // Try both models to find bookings
+    const query = { customerEmail: req.user.email }; // BoatBooking uses email instead of ID
     if (status) {
       query.status = status;
     }
 
-    const bookings = await BoatRide.find(query)
+    console.log('🔍 Boat Rides Query:', { query, userId: req.user.id, email: req.user.email });
+
+    // Try BoatBooking first (where the data likely is)
+    let bookings = await BoatBooking.find(query)
+      .populate('packageId')
       .sort({ createdAt: -1 })
       .limit(limit * 1)
       .skip((page - 1) * limit);
 
-    const total = await BoatRide.countDocuments(query);
+    let total = await BoatBooking.countDocuments(query);
+
+    // If no bookings found in BoatBooking, try BoatRide
+    if (bookings.length === 0) {
+      console.log('🔍 No bookings in BoatBooking, trying BoatRide...');
+      const rideQuery = { customerId: req.user.id };
+      if (status) {
+        rideQuery.status = status;
+      }
+      
+      bookings = await BoatRide.find(rideQuery)
+        .sort({ createdAt: -1 })
+        .limit(limit * 1)
+        .skip((page - 1) * limit);
+      
+      total = await BoatRide.countDocuments(rideQuery);
+    }
+    
+    console.log('🔍 Boat Rides Results:', { bookingsCount: bookings.length, total });
 
     res.status(200).json({
       success: true,

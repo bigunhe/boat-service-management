@@ -84,20 +84,65 @@ const CustomerDashboard = ({ firstName }) => {
     
     try {
       setLoadingSpent(true);
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/orders/user/orders`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
+      const token = localStorage.getItem('token');
       
-      const data = await response.json();
-      if (data.success) {
-        // Calculate total spent from all orders
-        const total = data.data.orders.reduce((sum, order) => {
-          return sum + order.totalAmount;
+      // Fetch all payment data from different services
+      const [boatRidesRes, ordersRes, repairsRes, appointmentsRes] = await Promise.all([
+        fetch(`${process.env.REACT_APP_API_URL}/api/boat-bookings/my-bookings`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }),
+        fetch(`${process.env.REACT_APP_API_URL}/api/orders/user/orders`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }),
+        fetch(`${process.env.REACT_APP_API_URL}/api/payments/my-payments?serviceType=boat_repair`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }),
+        fetch(`${process.env.REACT_APP_API_URL}/api/appointments/customer?customerEmail=${user.email}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+      ]);
+
+      const [boatRidesData, ordersData, repairsData, appointmentsData] = await Promise.all([
+        boatRidesRes.json(),
+        ordersRes.json(),
+        repairsRes.json(),
+        appointmentsRes.json()
+      ]);
+
+      // Calculate total spent across all services
+      let totalSpentAmount = 0;
+
+      // Boat rides
+      if (boatRidesData.success && boatRidesData.data?.bookings) {
+        const boatRideTotal = boatRidesData.data.bookings.reduce((sum, booking) => {
+          return sum + (booking.totalPrice || 0);
         }, 0);
-        setTotalSpent(total);
+        totalSpentAmount += boatRideTotal;
       }
+
+      // Spare parts orders
+      if (ordersData.success && ordersData.data?.orders) {
+        const sparePartsTotal = ordersData.data.orders.reduce((sum, order) => {
+          return sum + (order.totalAmount || 0);
+        }, 0);
+        totalSpentAmount += sparePartsTotal;
+      }
+
+      // Repair payments
+      if (repairsData.success && repairsData.data?.payments) {
+        const repairTotal = repairsData.data.payments.reduce((sum, payment) => {
+          return sum + (payment.amount || 0);
+        }, 0);
+        totalSpentAmount += repairTotal;
+      }
+
+      // Sales visits (appointments) - assuming fixed fee
+      if (appointmentsData.success && appointmentsData.data) {
+        const salesVisitTotal = appointmentsData.data.length * 2000; // Default fee per visit
+        totalSpentAmount += salesVisitTotal;
+      }
+
+      setTotalSpent(totalSpentAmount);
     } catch (error) {
       console.error('Failed to load total spent:', error);
       setTotalSpent(0);
@@ -187,11 +232,11 @@ const CustomerDashboard = ({ firstName }) => {
       route: '/my-repairs'
     },
     { 
-      name: 'Payment History', 
+      name: 'Payment Summary', 
       icon: <FaCreditCard />, 
-      description: 'View your payment history and invoices',
+      description: 'View your payment summary across all services',
       color: 'bg-gradient-to-br from-teal-600 to-blue-600',
-      route: '/payment-history'
+      route: '/payment-summary'
     },
     { 
       name: 'Notifications', 
@@ -311,7 +356,7 @@ const CustomerDashboard = ({ firstName }) => {
                     `Rs. ${totalSpent.toLocaleString()}`
                   )}
                 </div>
-                <div className="text-gray-600 text-sm">Total Spent (Spare Parts)</div>
+                <div className="text-gray-600 text-sm">Total Spent (All Services)</div>
               </div>
             </div>
           </div>

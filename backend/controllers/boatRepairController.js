@@ -179,13 +179,8 @@ export const getMyBoatRepairs = async (req, res, next) => {
       console.log(`Repair ${index + 1}:`, {
         id: repair._id,
         status: repair.status,
-        repairCosts: repair.repairCosts,
-        hasRepairCosts: !!repair.repairCosts,
-        paymentStatus: repair.repairCosts?.paymentStatus,
-        remainingAmount: repair.repairCosts?.remainingAmount,
-        showPayButton: repair.status === 'completed' && 
-                      repair.repairCosts?.paymentStatus === 'invoice_sent' && 
-                      repair.repairCosts?.remainingAmount > 0
+        cost: repair.cost,
+        totalCost: repair.totalCost
       });
     });
 
@@ -212,14 +207,10 @@ export const updateBoatRepair = async (req, res, next) => {
     const {
       status,
       assignedTechnician,
-      estimatedCost,
-      finalCost,
+      cost,
       internalNotes,
       priority,
-      workPerformed,
-      partsUsed,
-      laborHours,
-      laborRate
+      workPerformed
     } = req.body;
 
     const repair = await BoatRepair.findById(req.params.id);
@@ -249,8 +240,7 @@ export const updateBoatRepair = async (req, res, next) => {
       repair.assignedAt = new Date();
     }
 
-    if (estimatedCost !== undefined) repair.estimatedCost = estimatedCost;
-    if (finalCost !== undefined) repair.finalCost = finalCost;
+    if (cost !== undefined) repair.cost = cost;
     if (internalNotes !== undefined) repair.internalNotes = internalNotes;
     if (priority !== undefined) repair.priority = priority;
     if (workPerformed !== undefined) repair.workPerformed = workPerformed;

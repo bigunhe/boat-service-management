@@ -253,7 +253,18 @@ export const getUserPayments = async (req, res) => {
     const userId = req.user.id;
     const { page = 1, limit = 10, status, serviceType } = req.query;
 
-    const filter = { customerId: userId };
+    // Get user email to filter payments
+    const User = (await import('../models/userModel.js')).default;
+    const user = await User.findById(userId);
+    
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    const filter = { customerEmail: user.email };
     if (status) filter.status = status;
     if (serviceType) filter.serviceType = serviceType;
 

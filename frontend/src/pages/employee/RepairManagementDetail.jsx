@@ -913,10 +913,10 @@ const RepairManagementDetail = () => {
 
               <div className="mb-4 p-3 bg-blue-50 rounded-lg">
                 <p className="text-sm text-blue-800">
-                  <strong>Advance Payment:</strong> {repair.repairCosts?.advancePayment || 5000} LKR
+                  <strong>Current Cost:</strong> {repair.cost || 0} LKR
                 </p>
                 <p className="text-sm text-blue-800">
-                  <strong>Remaining Amount:</strong> {finalCost ? (parseInt(finalCost) - (repair.repairCosts?.advancePayment || 5000)) : 0} LKR
+                  <strong>Final Cost:</strong> {finalCost || 0} LKR
                 </p>
               </div>
               

@@ -49,13 +49,8 @@ export const sendInvoice = async (req, res) => {
       });
     }
 
-    // Update repair with final cost
-    const remainingAmount = finalCost - repair.repairCosts.advancePayment;
-    
-    repair.repairCosts.finalCost = finalCost;
-    repair.repairCosts.remainingAmount = remainingAmount;
-    repair.repairCosts.paymentStatus = 'invoice_sent';
-    repair.repairCosts.invoiceSentAt = new Date();
+    // Update repair with final cost (simplified)
+    repair.cost = finalCost;
     
     await repair.save();
 
@@ -64,7 +59,7 @@ export const sendInvoice = async (req, res) => {
       userId: repair.customer._id,
       type: 'repair_invoice',
       title: 'Repair Invoice Ready',
-      message: `Your repair ${repair.bookingId} is complete. Cost: ${finalCost} LKR, Remaining: ${remainingAmount} LKR`,
+      message: `Your repair ${repair.bookingId} is complete. Final cost: ${finalCost} LKR`,
       repairId: repair.bookingId
     });
 
@@ -106,21 +101,8 @@ export const processFinalPayment = async (req, res) => {
     }
 
     console.log('Found repair:', repair.bookingId);
-    console.log('Repair costs:', JSON.stringify(repair.repairCosts, null, 2));
-    console.log('Payment status:', repair.repairCosts?.paymentStatus);
-
-    // Ensure repairCosts exists
-    if (!repair.repairCosts) {
-      console.log('Repair costs not initialized, creating default...');
-      repair.repairCosts = {
-        advancePayment: 5000,
-        estimatedCost: 0,
-        finalCost: 0,
-        remainingAmount: 0,
-        paymentStatus: 'advance_paid'
-      };
-      await repair.save();
-    }
+    console.log('Repair cost:', repair.cost);
+    console.log('Payment status:', repair.payment?.status || 'pending');
 
     // Allow payment if repair is completed and not already fully paid
     if (repair.status !== 'completed') {
@@ -131,7 +113,7 @@ export const processFinalPayment = async (req, res) => {
       });
     }
 
-    if (repair.repairCosts.paymentStatus === 'fully_paid') {
+    if (repair.payment?.status === 'paid') {
       console.log('Payment already completed');
       return res.status(400).json({
         success: false,
@@ -156,9 +138,9 @@ export const processFinalPayment = async (req, res) => {
         stripePaymentIntentId: paymentIntentId,
         customerEmail: 'customer@example.com',
         customerName: 'Customer Name',
-        amount: amount || repair.repairCosts.remainingAmount,
+        amount: amount || repair.cost,
         currency: 'lkr',
-        amountInCents: (amount || repair.repairCosts.remainingAmount) * 100,
+        amountInCents: (amount || repair.cost) * 100,
         status: 'succeeded',
         serviceType: 'boat_repair',
         serviceId: repair.bookingId,
@@ -172,8 +154,10 @@ export const processFinalPayment = async (req, res) => {
 
     // Update repair status
     console.log('Updating repair status...');
-    repair.repairCosts.paymentStatus = 'fully_paid';
-    repair.repairCosts.finalPaymentAt = new Date();
+    repair.payment = {
+      status: 'paid',
+      paidAt: new Date()
+    };
     await repair.save();
     console.log('Repair status updated');
 
@@ -184,7 +168,7 @@ export const processFinalPayment = async (req, res) => {
         userId: repair.customer,
         type: 'payment_received',
         title: 'Payment Received',
-        message: `Your payment of ${repair.repairCosts.remainingAmount} LKR has been received for repair ${repair.bookingId}`,
+        message: `Your payment of ${repair.cost} LKR has been received for repair ${repair.bookingId}`,
         repairId: repair.bookingId
       });
       console.log('Notification created');
@@ -198,7 +182,7 @@ export const processFinalPayment = async (req, res) => {
       message: 'Payment processed successfully',
       data: {
         paymentId: existingPayment?.paymentId || payment?.paymentId,
-        amount: repair.repairCosts.remainingAmount
+        amount: repair.cost
       }
     });
   } catch (error) {
@@ -228,10 +212,8 @@ export const getRepairCostBreakdown = async (req, res) => {
       success: true,
       data: {
         repairId: repair.bookingId,
-        advancePayment: repair.repairCosts.advancePayment,
-        finalCost: repair.repairCosts.finalCost,
-        remainingAmount: repair.repairCosts.remainingAmount,
-        paymentStatus: repair.repairCosts.paymentStatus,
+        cost: repair.cost,
+        paymentStatus: repair.payment?.status || 'pending',
         serviceType: repair.serviceType,
         problemDescription: repair.problemDescription,
         status: repair.status

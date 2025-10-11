@@ -196,19 +196,11 @@ const boatRepairSchema = new mongoose.Schema({
     amount: Number
   },
 
-  // Repair costs
-  repairCosts: {
-    advancePayment: { type: Number, default: 5000 },
-    estimatedCost: { type: Number, default: 0 },
-    finalCost: { type: Number, default: 0 },
-    remainingAmount: { type: Number, default: 0 },
-    paymentStatus: { 
-      type: String, 
-      enum: ['advance_paid', 'invoice_sent', 'fully_paid'],
-      default: 'advance_paid'
-    },
-    invoiceSentAt: { type: Date },
-    finalPaymentAt: { type: Date }
+  // Repair cost (simplified)
+  cost: {
+    type: Number,
+    required: true,
+    default: 0
   },
 
   // Work Details
@@ -275,11 +267,9 @@ boatRepairSchema.index({ status: 1 });
 boatRepairSchema.index({ createdAt: -1 });
 boatRepairSchema.index({ bookingId: 1 });
 
-// Virtual for total cost calculation
+// Virtual for total cost calculation (simplified)
 boatRepairSchema.virtual('totalCost').get(function() {
-  const partsCost = this.partsUsed.reduce((total, part) => total + (part.cost * part.quantity), 0);
-  const laborCost = (this.laborHours || 0) * (this.laborRate || 0);
-  return partsCost + laborCost;
+  return this.cost || 0;
 });
 
 // Method to update status

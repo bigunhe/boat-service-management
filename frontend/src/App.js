@@ -20,6 +20,7 @@ import BoatDetailsPage from './pages/customer/BoatDetailsPage';
 import BookAppointment from './pages/customer/BookAppointment';
 import CustomerAppointmentsPage from './pages/customer/CustomerAppointmentsPage';
 import ContactPage from './pages/customer/ContactPage';
+import PaymentSummary from './pages/customer/PaymentSummary';
 
 // User Pages
 import Login from './pages/user/Login';
@@ -148,6 +149,7 @@ function App() {
               <Route path="/boat-rides" element={<ProtectedRoute><BoatRideBooking /></ProtectedRoute>} />
               <Route path="/ride-confirmation/:id" element={<ProtectedRoute><RideConfirmation /></ProtectedRoute>} />
               <Route path="/my-rides" element={<ProtectedRoute><MyRides /></ProtectedRoute>} />
+              <Route path="/payment-summary" element={<ProtectedRoute><PaymentSummary /></ProtectedRoute>} />
               
               {/* New Boat Service Routes */}
               <Route path="/customer" element={<ProtectedRoute><CustomerDashboard /></ProtectedRoute>} />

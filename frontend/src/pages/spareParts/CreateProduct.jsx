@@ -132,6 +132,27 @@ const CreateProduct = () => {
     setErrors({ ...errors, [name]: error });
   };
 
+  const handlePartNumberKeyDown = (e) => {
+    // Allow: backspace, delete, tab, escape, enter, home, end, left, right, up, down
+    if ([8, 9, 27, 13, 46, 35, 36, 37, 38, 39, 40].indexOf(e.keyCode) !== -1 ||
+        // Allow Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X
+        (e.keyCode === 65 && e.ctrlKey === true) ||
+        (e.keyCode === 67 && e.ctrlKey === true) ||
+        (e.keyCode === 86 && e.ctrlKey === true) ||
+        (e.keyCode === 88 && e.ctrlKey === true)) {
+      return;
+    }
+    
+    // Ensure that it is a number, letter, dash, or forward slash
+    if ((e.shiftKey || (e.keyCode < 48 || e.keyCode > 57)) && 
+        (e.keyCode < 65 || e.keyCode > 90) && 
+        (e.keyCode < 97 || e.keyCode > 122) && 
+        e.keyCode !== 189 && // dash (-)
+        e.keyCode !== 191) { // forward slash (/)
+      e.preventDefault();
+    }
+  };
+
   const handleAddProduct = async () => {
     // Check if there are any validation errors
     const hasErrors = Object.values(errors).some(error => error !== "");
@@ -222,6 +243,7 @@ const CreateProduct = () => {
                 name="partNumber"
                 value={newProduct.partNumber}
                 onChange={handleInputChange}
+                onKeyDown={handlePartNumberKeyDown}
                 placeholder="Enter part number"
                 maxLength={19}
                 className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
