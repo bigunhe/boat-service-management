@@ -1,10 +1,11 @@
 import mongoose from "mongoose";
 import Appointment from "../models/appointmentBooking.model.js";
+import Payment from "../models/Payment.js";
 
-// Get all appointments
+// Get all appointments with payment status
 export const getAppointments = async (req, res) => {
   try {
-    const { status, date, serviceType } = req.query;
+    const { status, date, serviceType, paymentStatus } = req.query;
     
     // Build filter object
     let filter = {};
@@ -15,7 +16,42 @@ export const getAppointments = async (req, res) => {
     const appointments = await Appointment.find(filter)
       .sort({ appointmentDate: 1, appointmentTime: 1 });
     
-    res.status(200).json({ success: true, data: appointments });
+    // Get payment status for each appointment
+    const appointmentsWithPaymentStatus = await Promise.all(
+      appointments.map(async (appointment) => {
+        // For Boat Purchase Visit appointments, check if payment exists
+        if (appointment.serviceType === 'Boat Purchase Visit') {
+          const payment = await Payment.findOne({
+            serviceType: 'boat_sales_visit',
+            customerEmail: appointment.customerEmail,
+            serviceId: appointment._id.toString()
+          });
+          
+          return {
+            ...appointment.toObject(),
+            paymentStatus: payment ? payment.status : 'completed', // Assume paid if no payment record found
+            paymentId: payment ? payment._id : null
+          };
+        }
+        
+        // For other appointment types, assume paid (all appointments require payment)
+        return {
+          ...appointment.toObject(),
+          paymentStatus: 'completed',
+          paymentId: null
+        };
+      })
+    );
+    
+    // Filter by payment status if specified
+    let filteredAppointments = appointmentsWithPaymentStatus;
+    if (paymentStatus && paymentStatus !== 'All') {
+      filteredAppointments = appointmentsWithPaymentStatus.filter(
+        appointment => appointment.paymentStatus === paymentStatus
+      );
+    }
+    
+    res.status(200).json({ success: true, data: filteredAppointments });
   } catch (error) {
     console.log("error in fetching appointments", error.message);
     res.status(500).json({ success: false, message: "Server Error" });
@@ -449,5 +485,45 @@ export const getCalendarData = async (req, res) => {
   } catch (error) {
     console.log("error in fetching calendar data", error.message);
     res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
+// Get appointment statistics (Employee/Admin only)
+export const getAppointmentStats = async (req, res) => {
+  try {
+    const stats = await Appointment.aggregate([
+      {
+        $group: {
+          _id: '$status',
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    const totalAppointments = await Appointment.countDocuments();
+    const pendingVisits = await Appointment.countDocuments({ 
+      status: { $in: ['Pending', 'Confirmed'] } 
+    });
+    const completedVisits = await Appointment.countDocuments({ status: 'Completed' });
+    const cancelledVisits = await Appointment.countDocuments({ status: 'Cancelled' });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        total: totalAppointments,
+        pendingVisits: pendingVisits,
+        completed: completedVisits,
+        cancelled: cancelledVisits,
+        byStatus: stats
+      }
+    });
+
+  } catch (error) {
+    console.error('Get appointment stats error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get appointment statistics',
+      error: error.message
+    });
   }
 };

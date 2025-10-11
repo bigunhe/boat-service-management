@@ -33,6 +33,11 @@ const RepairManagementDetail = () => {
   const [newStatus, setNewStatus] = useState('');
   const [statusNotes, setStatusNotes] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
+  const [showCostModal, setShowCostModal] = useState(false);
+  const [costOptions, setCostOptions] = useState([]);
+  const [selectedCost, setSelectedCost] = useState('');
+  const [finalCost, setFinalCost] = useState('');
+  const [isSendingInvoice, setIsSendingInvoice] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -96,6 +101,68 @@ const RepairManagementDetail = () => {
     } catch (error) {
       console.error('Error fetching technicians:', error);
       toast.error('Failed to load technicians');
+    }
+  };
+
+  const fetchCostOptions = async (serviceType) => {
+    try {
+      const token = localStorage.getItem('token');
+      
+      const response = await fetch(`http://localhost:5001/api/repair-costs/cost-options/${serviceType}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch cost options');
+      }
+      
+      const data = await response.json();
+      setCostOptions(data.data || []);
+    } catch (error) {
+      console.error('Error fetching cost options:', error);
+      toast.error('Failed to load cost options');
+    }
+  };
+
+  const sendInvoice = async () => {
+    try {
+      setIsSendingInvoice(true);
+      const token = localStorage.getItem('token');
+      
+      const response = await fetch(`http://localhost:5001/api/repair-costs/${repair._id}/send-invoice`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          finalCost: parseInt(finalCost)
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to send invoice');
+      }
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        toast.success('Invoice sent to customer successfully!');
+        setShowCostModal(false);
+        setSelectedCost('');
+        setFinalCost('');
+        fetchRepairDetails(); // Refresh repair details
+      } else {
+        throw new Error(data.message || 'Failed to send invoice');
+      }
+    } catch (error) {
+      console.error('Error sending invoice:', error);
+      toast.error(error.message);
+    } finally {
+      setIsSendingInvoice(false);
     }
   };
 
@@ -208,6 +275,12 @@ const RepairManagementDetail = () => {
         setShowStatusModal(false);
         setNewStatus('');
         setStatusNotes('');
+        
+        // If status is completed, show cost addition modal
+        if (newStatus === 'completed') {
+          await fetchCostOptions(repair.serviceType);
+          setShowCostModal(true);
+        }
       } else {
         throw new Error(data.message || 'Failed to update status');
       }
@@ -527,6 +600,19 @@ const RepairManagementDetail = () => {
                     Update Status
                   </button>
                 )}
+
+                {repair.status === 'completed' && repair.repairCosts?.paymentStatus === 'advance_paid' && (
+                  <button
+                    onClick={async () => {
+                      await fetchCostOptions(repair.serviceType);
+                      setShowCostModal(true);
+                    }}
+                    className="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-green-600 hover:bg-green-700 transition-colors"
+                  >
+                    <FaCheckCircle className="mr-2" />
+                    Send Invoice
+                  </button>
+                )}
               </div>
             </div>
 
@@ -561,6 +647,60 @@ const RepairManagementDetail = () => {
                 )}
               </div>
             </div>
+
+            {/* Repair Cost Information */}
+            {repair.repairCosts && (
+              <div className="bg-white rounded-lg shadow-md p-6">
+                <h2 className="text-xl font-semibold text-gray-900 mb-4">Repair Cost Information</h2>
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Advance Payment</p>
+                    <p className="text-sm text-gray-900">{repair.repairCosts.advancePayment} LKR</p>
+                  </div>
+                  
+                  {repair.repairCosts.finalCost > 0 && (
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Final Cost</p>
+                      <p className="text-sm text-gray-900">{repair.repairCosts.finalCost} LKR</p>
+                    </div>
+                  )}
+                  
+                  {repair.repairCosts.remainingAmount > 0 && (
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Remaining Amount</p>
+                      <p className="text-sm text-gray-900">{repair.repairCosts.remainingAmount} LKR</p>
+                    </div>
+                  )}
+                  
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Payment Status</p>
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                      repair.repairCosts.paymentStatus === 'fully_paid' 
+                        ? 'bg-green-100 text-green-800'
+                        : repair.repairCosts.paymentStatus === 'invoice_sent'
+                        ? 'bg-yellow-100 text-yellow-800'
+                        : 'bg-blue-100 text-blue-800'
+                    }`}>
+                      {repair.repairCosts.paymentStatus.replace('_', ' ').toUpperCase()}
+                    </span>
+                  </div>
+                  
+                  {repair.repairCosts.invoiceSentAt && (
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Invoice Sent Date</p>
+                      <p className="text-sm text-gray-900">{formatDateTime(repair.repairCosts.invoiceSentAt)}</p>
+                    </div>
+                  )}
+                  
+                  {repair.repairCosts.finalPaymentAt && (
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Final Payment Date</p>
+                      <p className="text-sm text-gray-900">{formatDateTime(repair.repairCosts.finalPaymentAt)}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Status History */}
             {repair.statusUpdates && repair.statusUpdates.length > 0 && (
@@ -716,6 +856,84 @@ const RepairManagementDetail = () => {
                     setShowStatusModal(false);
                     setNewStatus('');
                     setStatusNotes('');
+                  }}
+                  className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+                >
+                  <FaTimes className="mr-2" />
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Cost Addition Modal */}
+        {showCostModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 w-full max-w-md">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Add Repair Cost</h3>
+              
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Select Cost Option
+                </label>
+                <select
+                  value={selectedCost}
+                  onChange={(e) => {
+                    setSelectedCost(e.target.value);
+                    const option = costOptions.find(opt => opt._id === e.target.value);
+                    if (option) {
+                      setFinalCost(option.estimatedCost);
+                    }
+                  }}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                >
+                  <option value="">Select cost option...</option>
+                  {costOptions.map((option) => (
+                    <option key={option._id} value={option._id}>
+                      {option.repairType} - {option.estimatedCost} LKR
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Final Cost (LKR)
+                </label>
+                <input
+                  type="number"
+                  value={finalCost}
+                  onChange={(e) => setFinalCost(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  placeholder="Enter final cost"
+                  min="0"
+                />
+              </div>
+
+              <div className="mb-4 p-3 bg-blue-50 rounded-lg">
+                <p className="text-sm text-blue-800">
+                  <strong>Advance Payment:</strong> {repair.repairCosts?.advancePayment || 5000} LKR
+                </p>
+                <p className="text-sm text-blue-800">
+                  <strong>Remaining Amount:</strong> {finalCost ? (parseInt(finalCost) - (repair.repairCosts?.advancePayment || 5000)) : 0} LKR
+                </p>
+              </div>
+              
+              <div className="flex space-x-3">
+                <button
+                  onClick={sendInvoice}
+                  disabled={isSendingInvoice || !finalCost}
+                  className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {isSendingInvoice ? <FaSpinner className="animate-spin mr-2" /> : <FaCheckCircle className="mr-2" />}
+                  Send Invoice
+                </button>
+                <button
+                  onClick={() => {
+                    setShowCostModal(false);
+                    setSelectedCost('');
+                    setFinalCost('');
                   }}
                   className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors"
                 >

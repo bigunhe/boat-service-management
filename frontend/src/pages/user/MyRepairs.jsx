@@ -14,7 +14,9 @@ import {
   FaTimesCircle,
   FaExclamationTriangle,
   FaSpinner,
-  FaPlus
+  FaPlus,
+  FaCreditCard,
+  FaExclamationCircle
 } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 
@@ -312,6 +314,32 @@ const MyRepairs = () => {
                           {statusInfo.icon}
                           <span className="ml-1">{statusInfo.label}</span>
                         </span>
+                        
+                        {/* Payment Status Indicator */}
+                        {repair.status === 'completed' && repair.repairCosts && (
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            repair.repairCosts.paymentStatus === 'fully_paid' 
+                              ? 'bg-green-100 text-green-800'
+                              : repair.repairCosts.paymentStatus === 'invoice_sent'
+                              ? 'bg-yellow-100 text-yellow-800'
+                              : 'bg-blue-100 text-blue-800'
+                          }`}>
+                            {repair.repairCosts.paymentStatus === 'fully_paid' ? (
+                              <FaCheckCircle className="mr-1" />
+                            ) : repair.repairCosts.paymentStatus === 'invoice_sent' ? (
+                              <FaExclamationCircle className="mr-1" />
+                            ) : (
+                              <FaCreditCard className="mr-1" />
+                            )}
+                            <span className="ml-1">
+                              {repair.repairCosts.paymentStatus === 'fully_paid' 
+                                ? 'Paid' 
+                                : repair.repairCosts.paymentStatus === 'invoice_sent'
+                                ? 'Payment Due'
+                                : 'Advance Paid'}
+                            </span>
+                          </span>
+                        )}
                       </div>
                       
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
@@ -371,6 +399,17 @@ const MyRepairs = () => {
                         >
                           <FaEdit className="mr-1" />
                           Edit
+                        </button>
+                      )}
+                      
+                      {/* Pay Now Button for Completed Repairs */}
+                      {repair.status === 'completed' && repair.repairCosts?.paymentStatus === 'invoice_sent' && repair.repairCosts?.remainingAmount > 0 && (
+                        <button
+                          onClick={() => navigate(`/repair-payment/${repair._id}`)}
+                          className="flex items-center px-3 py-2 text-sm bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors"
+                        >
+                          <FaCreditCard className="mr-1" />
+                          Pay Now
                         </button>
                       )}
                       

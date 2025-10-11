@@ -12,7 +12,8 @@ import {
   processRefund,
   handleCalendlyWebhook,
   getRideByBookingId,
-  getPricing
+  getPricing,
+  getBoatRideStats
 } from '../controllers/boatRideController.js';
 
 const router = express.Router();
@@ -21,13 +22,16 @@ const router = express.Router();
 router.post('/', protect, createBoatRide);
 router.get('/my-bookings', protect, getMyBookings);
 router.get('/booking/:bookingId', protect, getRideByBookingId);
-router.get('/:id', protect, getBoatRideById);
-router.put('/:id', protect, updateBoatRide);
-router.put('/:id/cancel', protect, cancelBoatRide);
 router.post('/pricing', protect, getPricing);
 
 // Employee/Admin routes (auth + role required)
 router.get('/all', protect, restrictTo('employee', 'admin'), getAllBookings);
+router.get('/stats', protect, restrictTo('employee', 'admin'), getBoatRideStats);
+
+// ID-based routes (must come after specific routes)
+router.get('/:id', protect, getBoatRideById);
+router.put('/:id', protect, updateBoatRide);
+router.put('/:id/cancel', protect, cancelBoatRide);
 router.put('/:id/assign', protect, restrictTo('employee', 'admin'), assignBoatRide);
 router.put('/:id/status', protect, restrictTo('employee', 'admin'), updateBookingStatus);
 router.put('/:id/refund', protect, restrictTo('employee', 'admin'), processRefund);

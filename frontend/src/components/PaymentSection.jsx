@@ -18,6 +18,7 @@ import {
   CardHeader,
   Flex,
   Spinner,
+  useDisclosure
 } from '@chakra-ui/react';
 import { 
   FaCreditCard, 
@@ -27,31 +28,62 @@ import {
   FaLock,
   FaRupeeSign
 } from 'react-icons/fa';
+import StripePayment from './StripePayment.jsx';
+import { formatAmount } from '../config/stripe.js';
+import toast from 'react-hot-toast';
 
-const PaymentSection = ({ onPaymentComplete, isPaid = false, isLoading = false }) => {
+const PaymentSection = ({ 
+  onPaymentComplete, 
+  isPaid = false, 
+  isLoading = false, 
+  amount = 2000,
+  serviceType,
+  serviceId,
+  serviceDescription,
+  customerInfo
+}) => {
   const [paymentStatus, setPaymentStatus] = useState('pending'); // pending, processing, completed, failed
+  const { isOpen, onOpen, onClose } = useDisclosure();
   
   const bgColor = useColorModeValue('white', 'gray.800');
   const borderColor = useColorModeValue('gray.200', 'gray.600');
   const textColor = useColorModeValue('gray.800', 'white');
   const mutedColor = useColorModeValue('gray.600', 'gray.400');
+  const summaryBgColor = useColorModeValue('gray.50', 'gray.700');
 
   const handlePaymentClick = () => {
-    setPaymentStatus('processing');
+    if (!amount || amount <= 0) {
+      toast.error('Invalid payment amount');
+      return;
+    }
+
+    if (!serviceType || !serviceId || !serviceDescription) {
+      toast.error('Missing service information');
+      return;
+    }
+
+    if (!customerInfo || !customerInfo.email || !customerInfo.name) {
+      toast.error('Missing customer information');
+      return;
+    }
+
+    onOpen();
+  };
+
+  const handlePaymentSuccess = (paymentData) => {
+    setPaymentStatus('completed');
+    toast.success('Payment completed successfully! Redirecting to order confirmation...');
+    onClose(); // Close the payment modal
     
-    // TODO: Replace this mock payment with real Stripe integration
-    // This is where you'll integrate with your friend's payment system
-    // Example flow:
-    // 1. Create Stripe payment intent
-    // 2. Redirect to Stripe checkout
-    // 3. Handle payment success/failure callbacks
-    // 4. Call onPaymentComplete() on success
-    
-    // Simulate payment processing (remove this when implementing real payment)
+    // Small delay to ensure modal closes before navigation
     setTimeout(() => {
-      setPaymentStatus('completed');
-      onPaymentComplete && onPaymentComplete();
-    }, 2000);
+      onPaymentComplete && onPaymentComplete(paymentData);
+    }, 500);
+  };
+
+  const handlePaymentError = (error) => {
+    setPaymentStatus('failed');
+    console.error('Payment error:', error);
   };
 
   const getPaymentButtonContent = () => {
@@ -70,11 +102,18 @@ const PaymentSection = ({ onPaymentComplete, isPaid = false, isLoading = false }
             <Text>Payment Completed</Text>
           </HStack>
         );
+      case 'failed':
+        return (
+          <HStack spacing={2}>
+            <Icon as={FaExclamationTriangle} />
+            <Text>Payment Failed - Try Again</Text>
+          </HStack>
+        );
       default:
         return (
           <HStack spacing={2}>
             <Icon as={FaCreditCard} />
-            <Text>Pay 2000 LKR</Text>
+            <Text>Pay {formatAmount(amount)}</Text>
           </HStack>
         );
     }
@@ -94,6 +133,14 @@ const PaymentSection = ({ onPaymentComplete, isPaid = false, isLoading = false }
           colorScheme: 'green',
           disabled: true,
         };
+      case 'failed':
+        return {
+          colorScheme: 'red',
+          onClick: () => {
+            setPaymentStatus('pending');
+            handlePaymentClick();
+          },
+        };
       default:
         return {
           colorScheme: 'blue',
@@ -102,190 +149,122 @@ const PaymentSection = ({ onPaymentComplete, isPaid = false, isLoading = false }
     }
   };
 
-  return (
-    <Card
-      bg={bgColor}
-      border="2px solid"
-      borderColor={paymentStatus === 'completed' ? 'green.300' : 'blue.300'}
-      borderRadius="xl"
-      shadow="lg"
-      position="relative"
-      overflow="hidden"
-      _before={{
-        content: '""',
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        height: '4px',
-        bgGradient: paymentStatus === 'completed' 
-          ? 'linear(to-r, green.500, green.400)' 
-          : 'linear(to-r, blue.500, cyan.400)',
-      }}
-    >
-      <CardHeader>
-        <VStack spacing={3} align="stretch">
-          <HStack spacing={3} justify="center">
-            <Icon 
-              as={paymentStatus === 'completed' ? FaCheckCircle : FaCreditCard} 
-              boxSize={6} 
-              color={paymentStatus === 'completed' ? 'green.500' : 'blue.500'} 
-            />
-            <Text fontSize="xl" fontWeight="bold" color={textColor}>
-              Payment Required
+  if (isPaid) {
+    return (
+      <Card bg={bgColor} borderColor={borderColor} borderWidth="1px">
+        <CardBody>
+          <VStack spacing={4}>
+            <HStack spacing={2}>
+              <Icon as={FaCheckCircle} color="green.500" boxSize={6} />
+              <Text fontSize="lg" fontWeight="bold" color="green.600">
+                Payment Completed
+              </Text>
+            </HStack>
+            <Text color={mutedColor} textAlign="center">
+              Your payment has been successfully processed. You will receive a confirmation email shortly.
             </Text>
-          </HStack>
-          
-          <Text textAlign="center" color={mutedColor} fontSize="sm">
-            Complete your payment to confirm your appointment booking
-          </Text>
-        </VStack>
-      </CardHeader>
-
-      <CardBody>
-        <VStack spacing={6} align="stretch">
-          {/* Payment Amount */}
-          <Box textAlign="center">
-            <HStack spacing={2} justify="center">
-              <Icon as={FaRupeeSign} boxSize={8} color="green.500" />
-              <Text fontSize="4xl" fontWeight="black" color="green.600">
-                2,000
-              </Text>
-            </HStack>
-            <Text fontSize="lg" color={mutedColor} mt={2}>
-              Service Fee
-            </Text>
-          </Box>
-
-          <Divider />
-
-          {/* Payment Information */}
-          <VStack spacing={3} align="stretch">
-            <HStack spacing={3}>
-              <Icon as={FaShieldAlt} color="green.500" />
-              <Text fontSize="sm" color={mutedColor}>
-                Secure payment processing
-              </Text>
-            </HStack>
-            
-            <HStack spacing={3}>
-              <Icon as={FaLock} color="blue.500" />
-              <Text fontSize="sm" color={mutedColor}>
-                Your payment information is encrypted and secure
-              </Text>
-            </HStack>
-            
-            <HStack spacing={3}>
-              <Icon as={FaCheckCircle} color="green.500" />
-              <Text fontSize="sm" color={mutedColor}>
-                Payment confirmation will be sent to your email
-              </Text>
-            </HStack>
           </VStack>
+        </CardBody>
+      </Card>
+    );
+  }
 
-          {/* Payment Status Alert */}
-          {paymentStatus === 'completed' && (
-            <Alert status="success" borderRadius="md">
-              <AlertIcon />
-              <Box>
-                <AlertTitle>Payment Successful!</AlertTitle>
-                <AlertDescription>
-                  Your payment has been processed successfully. You can now complete your appointment booking.
-                </AlertDescription>
-              </Box>
-            </Alert>
-          )}
+  return (
+    <>
+      <Card bg={bgColor} borderColor={borderColor} borderWidth="1px">
+        <CardHeader>
+          <Flex justify="space-between" align="center">
+            <HStack spacing={3}>
+              <Icon as={FaCreditCard} color="blue.500" boxSize={5} />
+              <VStack align="start" spacing={0}>
+                <Text fontSize="lg" fontWeight="bold" color={textColor}>
+                  Payment Required
+                </Text>
+                <Text fontSize="sm" color={mutedColor}>
+                  Complete your payment to proceed
+                </Text>
+              </VStack>
+            </HStack>
+            <Badge colorScheme="blue" variant="subtle">
+              Secure Payment
+            </Badge>
+          </Flex>
+        </CardHeader>
+        
+        <CardBody>
+          <VStack spacing={6} align="stretch">
+            {/* Payment Summary */}
+            <Box p={4} bg={summaryBgColor} borderRadius="md">
+              <VStack spacing={2} align="stretch">
+                <HStack justify="space-between">
+                  <Text color={mutedColor}>Service:</Text>
+                  <Text fontWeight="medium">{serviceDescription}</Text>
+                </HStack>
+                <HStack justify="space-between">
+                  <Text color={mutedColor}>Amount:</Text>
+                  <Text fontSize="lg" fontWeight="bold" color="blue.600">
+                    {formatAmount(amount)}
+                  </Text>
+                </HStack>
+              </VStack>
+            </Box>
 
-          {paymentStatus === 'failed' && (
-            <Alert status="error" borderRadius="md">
-              <AlertIcon />
-              <Box>
-                <AlertTitle>Payment Failed</AlertTitle>
-                <AlertDescription>
-                  There was an issue processing your payment. Please try again.
-                </AlertDescription>
-              </Box>
-            </Alert>
-          )}
+            {/* Security Features */}
+            <VStack spacing={3} align="stretch">
+              <HStack spacing={2}>
+                <Icon as={FaLock} color="green.500" />
+                <Text fontSize="sm" color={mutedColor}>
+                  Your payment information is encrypted and secure
+                </Text>
+              </HStack>
+              <HStack spacing={2}>
+                <Icon as={FaShieldAlt} color="blue.500" />
+                <Text fontSize="sm" color={mutedColor}>
+                  Powered by Stripe - trusted by millions of businesses
+                </Text>
+              </HStack>
+            </VStack>
 
-          {/* Payment Button */}
-          <Box textAlign="center">
+            {/* Payment Button */}
             <Button
               size="lg"
-              px={12}
-              py={6}
-              fontSize="lg"
-              fontWeight="bold"
-              bgGradient={
-                paymentStatus === 'completed'
-                  ? 'linear(to-r, green.500, green.400)'
-                  : 'linear(to-r, blue.500, cyan.400)'
-              }
-              _hover={
-                paymentStatus !== 'completed' && paymentStatus !== 'processing'
-                  ? {
-                      bgGradient: 'linear(to-r, blue.600, cyan.500)',
-                      transform: 'translateY(-2px)',
-                      shadow: 'lg'
-                    }
-                  : {}
-              }
+              leftIcon={<Icon as={FaCreditCard} />}
               {...getPaymentButtonProps()}
+              isLoading={isLoading}
+              loadingText="Loading..."
             >
               {getPaymentButtonContent()}
             </Button>
-          </Box>
 
-          {/* Payment Notice */}
-          <Box
-            bg={useColorModeValue('blue.50', 'blue.900')}
-            border="1px solid"
-            borderColor={useColorModeValue('blue.200', 'blue.700')}
-            borderRadius="md"
-            p={4}
-            textAlign="center"
-          >
-            <VStack spacing={2}>
-              <HStack spacing={2}>
-                <Icon as={FaExclamationTriangle} color="blue.500" />
-                <Text fontSize="sm" fontWeight="bold" color="blue.700">
-                  Important Notice
-                </Text>
-              </HStack>
-              <Text fontSize="sm" color="blue.600">
-                Payment must be completed before your appointment can be confirmed. 
-                You will be redirected to our secure payment partner to complete the transaction.
-              </Text>
-            </VStack>
-          </Box>
+            {/* Additional Information */}
+            <Alert status="info" size="sm">
+              <AlertIcon />
+              <Box>
+                <AlertTitle fontSize="sm">Payment Information</AlertTitle>
+                <AlertDescription fontSize="xs">
+                  You will be redirected to our secure payment gateway. 
+                  We accept all major credit and debit cards.
+                </AlertDescription>
+              </Box>
+            </Alert>
+          </VStack>
+        </CardBody>
+      </Card>
 
-          {/* Payment Partner Info */}
-          <Box textAlign="center">
-            <Text fontSize="xs" color={mutedColor}>
-              Powered by our secure payment partner
-            </Text>
-            <Text fontSize="xs" color={mutedColor} mt={1}>
-              All transactions are processed securely and encrypted
-            </Text>
-          </Box>
-        </VStack>
-      </CardBody>
-    </Card>
+      {/* Stripe Payment Modal */}
+      <StripePayment
+        isOpen={isOpen}
+        onClose={onClose}
+        amount={amount}
+        serviceType={serviceType}
+        serviceId={serviceId}
+        serviceDescription={serviceDescription}
+        customerInfo={customerInfo}
+        onPaymentSuccess={handlePaymentSuccess}
+        onPaymentError={handlePaymentError}
+      />
+    </>
   );
 };
 
 export default PaymentSection;
-
-
-
-
-
-
-
-
-
-
-
-
-
-

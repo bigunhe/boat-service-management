@@ -30,7 +30,7 @@ router.route('/')
   .post(createBoatRepair) // Create new repair request
   .get(getAllBoatRepairs); // Get all repairs (Employee/Admin only)
 
-// Customer specific routes
+// Customer specific routes (temporarily removing auth for debugging)
 router.route('/my-repairs')
   .get(getMyBoatRepairs); // Get customer's own repairs
 

@@ -196,6 +196,21 @@ const boatRepairSchema = new mongoose.Schema({
     amount: Number
   },
 
+  // Repair costs
+  repairCosts: {
+    advancePayment: { type: Number, default: 5000 },
+    estimatedCost: { type: Number, default: 0 },
+    finalCost: { type: Number, default: 0 },
+    remainingAmount: { type: Number, default: 0 },
+    paymentStatus: { 
+      type: String, 
+      enum: ['advance_paid', 'invoice_sent', 'fully_paid'],
+      default: 'advance_paid'
+    },
+    invoiceSentAt: { type: Date },
+    finalPaymentAt: { type: Date }
+  },
+
   // Work Details
   workPerformed: String,
   partsUsed: [{

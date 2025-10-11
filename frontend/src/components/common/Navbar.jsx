@@ -33,16 +33,16 @@ const Navbar = () => {
     
     switch(userRole) {
       case 'customer':
-        navigate('/support/customer');
+        navigate('/customer/chat');
         break;
       case 'employee':
-        navigate('/support/employee');
+        navigate('/employee/chat-dashboard');
         break;
       case 'admin':
-        navigate('/support/admin');
+        navigate('/admin/chat-support');
         break;
       default:
-        navigate('/support/customer');
+        navigate('/customer/chat');
     }
   };
 

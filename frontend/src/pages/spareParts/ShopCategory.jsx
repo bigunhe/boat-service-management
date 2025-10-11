@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
+import "./ShopCategory.css";
 
 const ShopCategory = () => {
   const [products, setProducts] = useState([]);
@@ -67,8 +68,18 @@ const ShopCategory = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Boat Spare Parts</h1>
-          <p className="text-gray-600">Find the parts you need for your boat</p>
+          <div className="flex justify-between items-start mb-4">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">Boat Spare Parts</h1>
+              <p className="text-gray-600">Find the parts you need for your boat</p>
+            </div>
+            <Link 
+              to="/dashboard" 
+              className="dashboard-link"
+            >
+              ← Back to Dashboard
+            </Link>
+          </div>
         </div>
 
         {/* Category Filter */}

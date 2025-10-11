@@ -657,6 +657,46 @@ const getPricing = async (req, res) => {
   }
 };
 
+// Get boat ride statistics (Employee/Admin only)
+const getBoatRideStats = async (req, res) => {
+  try {
+    const stats = await BoatRide.aggregate([
+      {
+        $group: {
+          _id: '$status',
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    const totalRides = await BoatRide.countDocuments();
+    const activeRides = await BoatRide.countDocuments({ 
+      status: { $in: ['pending', 'confirmed', 'in-progress'] } 
+    });
+    const completedRides = await BoatRide.countDocuments({ status: 'completed' });
+    const cancelledRides = await BoatRide.countDocuments({ status: 'cancelled' });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        total: totalRides,
+        active: activeRides,
+        completed: completedRides,
+        cancelled: cancelledRides,
+        byStatus: stats
+      }
+    });
+
+  } catch (error) {
+    console.error('Get boat ride stats error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get boat ride statistics',
+      error: error.message
+    });
+  }
+};
+
 export {
   createBoatRide,
   getMyBookings,
@@ -669,5 +709,6 @@ export {
   processRefund,
   handleCalendlyWebhook,
   getRideByBookingId,
-  getPricing
+  getPricing,
+  getBoatRideStats
 };

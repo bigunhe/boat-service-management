@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { FaArrowLeft, FaArrowRight, FaUpload, FaTimes, FaCheck, FaCalendarAlt, FaSpinner, FaImage, FaVideo } from 'react-icons/fa';
+import { FaArrowLeft, FaArrowRight, FaUpload, FaTimes, FaCheck, FaCalendarAlt, FaSpinner, FaImage, FaVideo, FaCreditCard } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import { uploadToCloudinary } from '../../hooks/useFileUpload';
 import { createBoatRepair, getRepairById, updateRepairByCustomer } from './repairApi';
+import PaymentSection from '../../components/PaymentSection';
 
 const RepairService = () => {
-  useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const { id } = useParams();
   
@@ -16,7 +17,7 @@ const RepairService = () => {
   
   // Step management
   const [currentStep, setCurrentStep] = useState(1);
-  const totalSteps = isEditMode ? 3 : 4; // Edit mode skips scheduling step
+  const totalSteps = isEditMode ? 3 : 5; // Edit mode skips scheduling and payment steps
   
   // Form data state
   const [formData, setFormData] = useState({
@@ -69,6 +70,20 @@ const RepairService = () => {
   const [isLoading, setIsLoading] = useState(isEditMode);
   const [originalData, setOriginalData] = useState(null);
   
+  // Payment state
+  const [paymentData, setPaymentData] = useState(null);
+  const [isPaymentCompleted, setIsPaymentCompleted] = useState(false);
+  
+  // Diagnostic fees based on service type
+  const diagnosticFees = {
+    'engine_repair': 2500,
+    'hull_repair': 3000,
+    'electrical': 2000,
+    'maintenance': 1500,
+    'emergency': 5000,
+    'other': 2000
+  };
+
   // Step titles
   const stepTitles = isEditMode ? [
     'Boat Details',
@@ -78,6 +93,7 @@ const RepairService = () => {
     'Boat Details',
     'Upload Photos/Videos', 
     'Schedule Appointment',
+    'Payment',
     'Submit Request'
   ];
   
@@ -182,6 +198,13 @@ const RepairService = () => {
       }
     }
     
+    if (currentStep === 4 && !isEditMode) {
+      if (!isPaymentCompleted) {
+        toast.error('Please complete the payment to proceed');
+        return;
+      }
+    }
+    
     if (currentStep < totalSteps) {
       setCurrentStep(currentStep + 1);
     }
@@ -191,6 +214,22 @@ const RepairService = () => {
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1);
     }
+  };
+
+  // Payment handlers
+  const handlePaymentSuccess = (paymentData) => {
+    setPaymentData(paymentData);
+    setIsPaymentCompleted(true);
+    toast.success('Payment completed successfully! You can now proceed to submit your request.');
+  };
+
+  const handlePaymentComplete = (paymentData) => {
+    handlePaymentSuccess(paymentData);
+  };
+
+  // Get diagnostic fee for current service type
+  const getDiagnosticFee = () => {
+    return diagnosticFees[formData.serviceType] || diagnosticFees['other'];
   };
   
   const handleInputChange = (field, value) => {
@@ -600,11 +639,24 @@ const RepairService = () => {
         customerNotes: formData.customerNotes
       };
 
-      // Only include scheduling data for new requests
+      // Only include scheduling and payment data for new requests
       if (!isEditMode) {
         submissionData.scheduledDateTime = formData.scheduledDateTime;
         submissionData.calendlyEventId = formData.calendlyEventId;
         submissionData.calendlyEventUri = formData.calendlyEventUri;
+        
+        // Include payment information
+        if (paymentData) {
+          submissionData.payment = {
+            paymentId: paymentData.paymentId,
+            stripePaymentIntentId: paymentData.stripePaymentIntentId,
+            amount: paymentData.amount,
+            currency: paymentData.currency,
+            status: paymentData.status,
+            paidAt: paymentData.paidAt
+          };
+          submissionData.diagnosticFee = getDiagnosticFee();
+        }
       }
 
       console.log(isEditMode ? 'Updating repair request:' : 'Submitting repair request:', submissionData);
@@ -625,7 +677,7 @@ const RepairService = () => {
         response = await createBoatRepair(submissionData);
         
         if (response.success) {
-          toast.success('Repair service request submitted successfully! Visit on your scheduled date or contact support for emergencies.');
+          toast.success('Repair service request submitted successfully! Your diagnostic fee has been paid and your appointment is confirmed.');
           
           // Navigate to confirmation page with booking ID
           navigate(`/booking-confirmation/${response.bookingId}`);
@@ -656,7 +708,7 @@ const RepairService = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
           <div className="flex items-center justify-between">
@@ -1275,8 +1327,55 @@ const RepairService = () => {
             </div>
           )}
 
-          {/* Step 3: Update Request (Edit mode) or Step 4: Submit Request (New mode) */}
-          {((currentStep === 3 && isEditMode) || (currentStep === 4 && !isEditMode)) && (
+          {/* Step 4: Payment (New mode only) */}
+          {currentStep === 4 && !isEditMode && (
+            <div className="p-8">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
+                <FaCreditCard className="mr-3 text-teal-600" />
+                Diagnostic Fee Payment
+              </h2>
+              
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
+                <h3 className="text-lg font-semibold text-blue-800 mb-3">Payment Information</h3>
+                <div className="space-y-2 text-blue-700">
+                  <p><strong>Service Type:</strong> {formData.serviceType.replace('_', ' ').toUpperCase()}</p>
+                  <p><strong>Diagnostic Fee:</strong> Rs. {getDiagnosticFee().toLocaleString()}</p>
+                  <p><strong>What's Included:</strong> Initial assessment, problem diagnosis, and repair estimate</p>
+                </div>
+              </div>
+
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+                <p className="text-yellow-800 text-sm">
+                  <strong>Note:</strong> This diagnostic fee covers the initial assessment. Any additional repair costs will be billed separately after the service is completed.
+                </p>
+              </div>
+
+              {!isPaymentCompleted ? (
+                <PaymentSection
+                  amount={getDiagnosticFee()}
+                  serviceType="boat_repair"
+                  serviceId={`REPAIR-${Date.now()}`}
+                  serviceDescription={`Boat Repair Diagnostic - ${formData.serviceType.replace('_', ' ')}`}
+                  customerInfo={{
+                    name: user?.name || '',
+                    email: user?.email || '',
+                    phone: user?.phone || ''
+                  }}
+                  onPaymentComplete={handlePaymentComplete}
+                />
+              ) : (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-6 text-center">
+                  <FaCheck className="text-green-600 text-4xl mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-green-800 mb-2">Payment Completed!</h3>
+                  <p className="text-green-700">Your diagnostic fee has been paid successfully.</p>
+                  <p className="text-green-600 text-sm mt-2">Payment ID: {paymentData?.paymentId}</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Step 3: Update Request (Edit mode) or Step 5: Submit Request (New mode) */}
+          {((currentStep === 3 && isEditMode) || (currentStep === 5 && !isEditMode)) && (
             <div className="p-8">
               <h2 className="text-2xl font-bold text-gray-900 mb-6">
                 {isEditMode ? 'Update Request' : 'Submit Request'}

@@ -15,7 +15,9 @@ import {
   FaSpinner,
   FaTools,
   FaShip,
-  FaUser
+  FaUser,
+  FaCreditCard,
+  FaExclamationCircle
 } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 
@@ -632,6 +634,111 @@ const RepairDetails = () => {
                     <p className="font-medium text-gray-900">{formatDateTime(repair.assignedAt)}</p>
                   </div>
                 )}
+              </div>
+            </div>
+          )}
+
+          {/* Payment Information */}
+          {repair.status === 'completed' && repair.repairCosts && (
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+                <FaCreditCard className="text-green-600 mr-2" />
+                Payment Information
+              </h2>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Cost Breakdown */}
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Advance Payment</p>
+                    <p className="text-sm text-gray-900">{repair.repairCosts.advancePayment} LKR</p>
+                  </div>
+                  
+                  {repair.repairCosts.finalCost > 0 && (
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Final Cost</p>
+                      <p className="text-sm text-gray-900">{repair.repairCosts.finalCost} LKR</p>
+                    </div>
+                  )}
+                  
+                  {repair.repairCosts.remainingAmount > 0 && (
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Remaining Amount</p>
+                      <p className="text-lg font-bold text-red-600">{repair.repairCosts.remainingAmount} LKR</p>
+                    </div>
+                  )}
+                  
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Payment Status</p>
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                      repair.repairCosts.paymentStatus === 'fully_paid' 
+                        ? 'bg-green-100 text-green-800'
+                        : repair.repairCosts.paymentStatus === 'invoice_sent'
+                        ? 'bg-yellow-100 text-yellow-800'
+                        : 'bg-blue-100 text-blue-800'
+                    }`}>
+                      {repair.repairCosts.paymentStatus.replace('_', ' ').toUpperCase()}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Payment Actions */}
+                <div className="space-y-3">
+                  {repair.repairCosts.invoiceSentAt && (
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Invoice Sent Date</p>
+                      <p className="text-sm text-gray-900">{formatDateTime(repair.repairCosts.invoiceSentAt)}</p>
+                    </div>
+                  )}
+                  
+                  {repair.repairCosts.finalPaymentAt && (
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Final Payment Date</p>
+                      <p className="text-sm text-gray-900">{formatDateTime(repair.repairCosts.finalPaymentAt)}</p>
+                    </div>
+                  )}
+
+                  {/* Payment Button */}
+                  {repair.repairCosts.paymentStatus === 'invoice_sent' && repair.repairCosts.remainingAmount > 0 && (
+                    <div className="pt-4">
+                      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                        <div className="flex items-center">
+                          <FaExclamationCircle className="text-yellow-600 mr-2" />
+                          <div>
+                            <p className="text-sm font-medium text-yellow-800">Payment Required</p>
+                            <p className="text-xs text-yellow-700">
+                              Please complete your payment to finalize the repair service.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <button
+                        onClick={() => navigate(`/repair-payment/${repair._id}`)}
+                        className="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-green-600 hover:bg-green-700 transition-colors"
+                      >
+                        <FaCreditCard className="mr-2" />
+                        Pay {repair.repairCosts.remainingAmount} LKR
+                      </button>
+                    </div>
+                  )}
+
+                  {repair.repairCosts.paymentStatus === 'fully_paid' && (
+                    <div className="pt-4">
+                      <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                        <div className="flex items-center">
+                          <FaCheckCircle className="text-green-600 mr-2" />
+                          <div>
+                            <p className="text-sm font-medium text-green-800">Payment Complete</p>
+                            <p className="text-xs text-green-700">
+                              Your repair service has been fully paid and completed.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           )}

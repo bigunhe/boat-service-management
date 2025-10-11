@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
+import { ChakraProvider } from '@chakra-ui/react';
 import { AuthProvider } from './context/AuthContext';
 
 // Common Pages
@@ -26,9 +27,12 @@ import Register from './pages/user/Register';
 import Profile from './pages/user/Profile';
 import CustomerProfile from './pages/user/CustomerProfile';
 import Dashboard from './pages/user/dashboards/Dashboard';
+import AdminDashboard from './pages/user/dashboards/AdminDashboard';
 import MyBookings from './pages/user/MyBookings';
+import Notifications from './pages/user/Notifications';
 import MyRepairs from './pages/user/MyRepairs';
 import RepairDetails from './pages/user/RepairDetails';
+import RepairPayment from './pages/user/RepairPayment';
 import ServiceHistory from './pages/user/ServiceHistory';
 
 // Auth Pages
@@ -50,6 +54,9 @@ import InventoryReport from './pages/spareParts/InventoryReport';
 import CreateProduct from './pages/spareParts/CreateProduct';
 import EditProduct from './pages/spareParts/EditProduct';
 import CartItems from './pages/cart/CartItems';
+import CheckoutPage from './pages/checkout/CheckoutPage';
+import OrderConfirmation from './pages/order/OrderConfirmation';
+import OrderTracking from './pages/order/OrderTracking';
 import PaymentHistory from './pages/payment/PaymentHistory';
 
 // Employee Pages
@@ -57,8 +64,10 @@ import RepairManagementList from './pages/employee/RepairManagementList';
 import RepairManagementDetail from './pages/employee/RepairManagementDetail';
 import RideManagement from './pages/rideBooking/RideManagement';
 import PurchaseManagement from './pages/purchaseVisit/PurchaseManagement';
-import SparePartsManagement from './pages/spareParts/SparePartsManagement';
+// import SparePartsManagement from './pages/spareParts/SparePartsManagement';
 import EmployeeProfile from './pages/user/EmployeeProfile';
+import EmployeeOrderManagement from './pages/employee/EmployeeOrderManagement';
+import OrderDetails from './pages/employee/OrderDetails';
 
 // Admin Pages
 import CreateEmployee from './pages/admin/CreateEmployee';
@@ -68,13 +77,19 @@ import AdminProfile from './pages/admin/AdminProfile';
 import UserAnalytics from './pages/admin/UserAnalytics';
 import RepairAnalytics from './pages/admin/RepairAnalytics';
 import FinancialAnalytics from './pages/admin/FinancialAnalytics';
+import CustomerAnalytics from './pages/admin/CustomerAnalytics';
+import OperationalAnalytics from './pages/admin/OperationalAnalytics';
 import BoatRidesAnalytics from './pages/admin/BoatRidesAnalytics';
-import BoatSalesAnalytics from './pages/admin/BoatSalesAnalytics';
-import SparePartsAnalytics from './pages/admin/SparePartsAnalytics';
+import SalesVisitAnalytics from './pages/admin/SalesVisitAnalytics';
+import InventoryAnalytics from './pages/admin/InventoryAnalytics';
+import SparePartsSalesAnalytics from './pages/admin/SparePartsSalesAnalytics';
 import AdminAboutPage from './pages/admin/AdminAboutPage';
 import BoatManagement from './pages/admin/BoatManagement';
 import AdminAppointmentPage from './pages/admin/AdminAppointmentPage';
 import AdminChatDashboard from './pages/admin/AdminChatDashboard';
+import EmployeeChatDashboard from './pages/admin/EmployeeChatDashboard';
+import AdminOrderManagement from './pages/admin/AdminOrderManagement';
+import CustomerChat from './pages/customer/CustomerChat';
 import AdminReviewsPage from './pages/admin/AdminReviewsPage';
 import AdminAllReviewsPage from './pages/admin/AdminAllReviewsPage';
 import AdminFeedback from './pages/admin/AdminFeedback';
@@ -82,10 +97,6 @@ import AdminAnalytics from './pages/admin/AdminAnalytics';
 import CreatePage from './pages/admin/CreatePage';
 import UserReviewsPage from './pages/customer/UserReviewsPage';
 
-// Support Pages
-import CustomerSupport from './pages/support/CustomerSupport';
-import EmployeeSupport from './pages/support/EmployeeSupport';
-import AdminSupport from './pages/support/AdminSupport';
 
 
 // Components
@@ -93,10 +104,19 @@ import ProtectedRoute from './components/common/ProtectedRoute';
 import Navbar from './components/common/Navbar';
 import Footer from './components/common/Footer';
 
+// Import new boat service components
+import CustomerDashboard from './pages/CustomerDashboard';
+import BookingRequestPage from './pages/BookingRequestPage';
+import BookingConfirmationPage from './pages/BookingConfirmationPage';
+import EmployeeDashboard from './pages/user/dashboards/EmployeeDashboard';
+import BookingManagementPage from './pages/BookingManagementPage';
+import PackageManagementPage from './pages/PackageManagementPage';
+
 function App() {
   return (
-    <AuthProvider>
-      <Router>
+    <ChakraProvider>
+      <AuthProvider>
+        <Router>
         <div className="min-h-screen bg-gray-50">
           <Navbar />
           <main className="flex-1">
@@ -128,16 +148,31 @@ function App() {
               <Route path="/boat-rides" element={<ProtectedRoute><BoatRideBooking /></ProtectedRoute>} />
               <Route path="/ride-confirmation/:id" element={<ProtectedRoute><RideConfirmation /></ProtectedRoute>} />
               <Route path="/my-rides" element={<ProtectedRoute><MyRides /></ProtectedRoute>} />
+              
+              {/* New Boat Service Routes */}
+              <Route path="/customer" element={<ProtectedRoute><CustomerDashboard /></ProtectedRoute>} />
+              <Route path="/booking" element={<ProtectedRoute><BookingRequestPage /></ProtectedRoute>} />
+              <Route path="/booking-confirmation" element={<ProtectedRoute><BookingConfirmationPage /></ProtectedRoute>} />
+              
+              {/* Employee Routes */}
+              <Route path="/employee" element={<ProtectedRoute><EmployeeDashboard /></ProtectedRoute>} />
+              <Route path="/employee/bookings" element={<ProtectedRoute><BookingManagementPage /></ProtectedRoute>} />
+              <Route path="/employee/packages" element={<ProtectedRoute><PackageManagementPage /></ProtectedRoute>} />
               <Route path="/repair-service" element={<ProtectedRoute><RepairService /></ProtectedRoute>} />
               <Route path="/repair-service/edit/:id" element={<ProtectedRoute><RepairService /></ProtectedRoute>} />
               <Route path="/boat-purchase" element={<ProtectedRoute><BoatPurchase /></ProtectedRoute>} />
               <Route path="/spare-parts" element={<ProtectedRoute><ShopCategory /></ProtectedRoute>} />
               <Route path="/spare-parts/:id" element={<ProtectedRoute><ProductDetailsPage /></ProtectedRoute>} />
               <Route path="/cart" element={<ProtectedRoute requiredRole="customer"><CartItems /></ProtectedRoute>} />
+              <Route path="/checkout" element={<ProtectedRoute requiredRole="customer"><CheckoutPage /></ProtectedRoute>} />
+              <Route path="/order-confirmation/:orderId" element={<ProtectedRoute requiredRole="customer"><OrderConfirmation /></ProtectedRoute>} />
+              <Route path="/my-orders" element={<ProtectedRoute requiredRole="customer"><OrderTracking /></ProtectedRoute>} />
               <Route path="/booking-confirmation/:bookingId" element={<ProtectedRoute><BookingConfirmation /></ProtectedRoute>} />
               <Route path="/my-bookings" element={<ProtectedRoute><MyBookings /></ProtectedRoute>} />
+              <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
               <Route path="/my-repairs" element={<ProtectedRoute><MyRepairs /></ProtectedRoute>} />
               <Route path="/repair-details/:id" element={<ProtectedRoute><RepairDetails /></ProtectedRoute>} />
+              <Route path="/repair-payment/:id" element={<ProtectedRoute><RepairPayment /></ProtectedRoute>} />
               <Route path="/service-history" element={<ProtectedRoute><ServiceHistory /></ProtectedRoute>} />
               <Route path="/payment-history" element={<ProtectedRoute><PaymentHistory /></ProtectedRoute>} />
               <Route path="/profile" element={<ProtectedRoute><CustomerProfile /></ProtectedRoute>} />
@@ -147,15 +182,17 @@ function App() {
               <Route path="/employee/repair-management/:id" element={<ProtectedRoute requiredRole="employee"><RepairManagementDetail /></ProtectedRoute>} />
               <Route path="/employee/ride-management" element={<ProtectedRoute requiredRole="employee"><RideManagement /></ProtectedRoute>} />
               <Route path="/employee/purchase-management" element={<ProtectedRoute requiredRole="employee"><PurchaseManagement /></ProtectedRoute>} />
-              <Route path="/employee/spare-parts-management" element={<ProtectedRoute requiredRole="employee"><SparePartsManagement /></ProtectedRoute>} />
+              {/* <Route path="/employee/spare-parts-management" element={<ProtectedRoute requiredRole="employee"><SparePartsManagement /></ProtectedRoute>} /> */}
               <Route path="/inventory" element={<ProtectedRoute requiredRole="employee"><InventoryManagement /></ProtectedRoute>} />
               <Route path="/inventory/report" element={<ProtectedRoute requiredRole="employee"><InventoryReport /></ProtectedRoute>} />
               <Route path="/inventory/create" element={<ProtectedRoute requiredRole="employee"><CreateProduct /></ProtectedRoute>} />
               <Route path="/inventory/edit/:id" element={<ProtectedRoute requiredRole="employee"><EditProduct /></ProtectedRoute>} />
               <Route path="/employee/profile" element={<ProtectedRoute requiredRole="employee"><EmployeeProfile /></ProtectedRoute>} />
-              <Route path="/employee/customer-support" element={<ProtectedRoute requiredRole="employee"><CustomerSupport /></ProtectedRoute>} />
+              <Route path="/employee/orders" element={<ProtectedRoute requiredRole="employee"><EmployeeOrderManagement /></ProtectedRoute>} />
+            <Route path="/employee/orders/:orderId" element={<ProtectedRoute requiredRole="employee"><OrderDetails /></ProtectedRoute>} />
               
               {/* Admin Routes */}
+              <Route path="/admin/dashboard" element={<ProtectedRoute requiredRole="admin"><AdminDashboard /></ProtectedRoute>} />
               <Route path="/admin/create-employee" element={<ProtectedRoute requiredRole="admin"><CreateEmployee /></ProtectedRoute>} />
               <Route path="/admin/users" element={<ProtectedRoute requiredRole="admin"><UserManagementList /></ProtectedRoute>} />
               <Route path="/admin/users/:id" element={<ProtectedRoute requiredRole="admin"><UserDetails /></ProtectedRoute>} />
@@ -164,9 +201,12 @@ function App() {
               <Route path="/admin/user-analytics" element={<ProtectedRoute requiredRole="admin"><UserAnalytics /></ProtectedRoute>} />
               <Route path="/admin/repair-analytics" element={<ProtectedRoute requiredRole="admin"><RepairAnalytics /></ProtectedRoute>} />
               <Route path="/admin/boat-rides-analytics" element={<ProtectedRoute requiredRole="admin"><BoatRidesAnalytics /></ProtectedRoute>} />
-              <Route path="/admin/boat-sales-analytics" element={<ProtectedRoute requiredRole="admin"><BoatSalesAnalytics /></ProtectedRoute>} />
-              <Route path="/admin/spare-parts-analytics" element={<ProtectedRoute requiredRole="admin"><SparePartsAnalytics /></ProtectedRoute>} />
+              <Route path="/admin/sales-visit-analytics" element={<ProtectedRoute requiredRole="admin"><SalesVisitAnalytics /></ProtectedRoute>} />
+              <Route path="/admin/inventory-analytics" element={<ProtectedRoute requiredRole="admin"><InventoryAnalytics /></ProtectedRoute>} />
+              <Route path="/admin/spare-parts-sales-analytics" element={<ProtectedRoute requiredRole="admin"><SparePartsSalesAnalytics /></ProtectedRoute>} />
               <Route path="/admin/financial-analytics" element={<ProtectedRoute requiredRole="admin"><FinancialAnalytics /></ProtectedRoute>} />
+              <Route path="/admin/customer-analytics" element={<ProtectedRoute requiredRole="admin"><CustomerAnalytics /></ProtectedRoute>} />
+              <Route path="/admin/operational-analytics" element={<ProtectedRoute requiredRole="admin"><OperationalAnalytics /></ProtectedRoute>} />
               <Route path="/admin/content-management" element={<ProtectedRoute requiredRole="admin"><AdminAboutPage /></ProtectedRoute>} />
               <Route path="/admin/boat-management" element={<ProtectedRoute requiredRole={["employee", "admin"]}><BoatManagement /></ProtectedRoute>} />
               <Route path="/admin/create" element={<ProtectedRoute requiredRole="admin"><CreatePage /></ProtectedRoute>} />
@@ -176,11 +216,14 @@ function App() {
               <Route path="/admin/reviews/:id" element={<ProtectedRoute requiredRole={["employee", "admin"]}><AdminReviewsPage /></ProtectedRoute>} />
               <Route path="/admin/feedback" element={<ProtectedRoute requiredRole="admin"><AdminFeedback /></ProtectedRoute>} />
               <Route path="/admin/analytics" element={<ProtectedRoute requiredRole="admin"><AdminAnalytics /></ProtectedRoute>} />
+              <Route path="/admin/orders" element={<ProtectedRoute requiredRole="admin"><AdminOrderManagement /></ProtectedRoute>} />
               
-              {/* Support Routes */}
-              <Route path="/support/customer" element={<ProtectedRoute requiredRole="customer"><CustomerSupport /></ProtectedRoute>} />
-              <Route path="/support/employee" element={<ProtectedRoute requiredRole="employee"><EmployeeSupport /></ProtectedRoute>} />
-              <Route path="/support/admin" element={<ProtectedRoute requiredRole="admin"><AdminSupport /></ProtectedRoute>} />
+              {/* Employee Chat Routes */}
+              <Route path="/employee/chat-dashboard" element={<ProtectedRoute requiredRole={["employee", "admin"]}><EmployeeChatDashboard /></ProtectedRoute>} />
+              
+              {/* Customer Chat Routes */}
+              <Route path="/customer/chat" element={<ProtectedRoute requiredRole="customer"><CustomerChat /></ProtectedRoute>} />
+              
               
               
               {/* 404 Route */}
@@ -199,8 +242,9 @@ function App() {
             }}
           />
         </div>
-      </Router>
-    </AuthProvider>
+        </Router>
+      </AuthProvider>
+    </ChakraProvider>
   );
 }
 

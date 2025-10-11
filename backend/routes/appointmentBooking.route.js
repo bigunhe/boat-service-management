@@ -10,7 +10,8 @@ import {
   getCalendarData,
   getCustomerAppointments,
   updateCustomerAppointment,
-  deleteCustomerAppointment
+  deleteCustomerAppointment,
+  getAppointmentStats
 } from "../controllers/appointmentBooking.controller.js";
 
 const router = express.Router();
@@ -20,6 +21,7 @@ router.get("/", getAppointments);
 router.get("/customer", getCustomerAppointments);
 router.get("/available-slots/:date", getAvailableTimeSlots);
 router.get("/calendar/:year/:month", getCalendarData);
+router.get("/stats", getAppointmentStats);
 router.get("/:id", getAppointmentById);
 router.post("/", createAppointment);
 router.put("/:id", updateAppointment);

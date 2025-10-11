@@ -577,6 +577,15 @@ const UserAppointmentsPage = () => {
                     </Heading>
                   </HStack>
                   <PaymentSection
+                    amount={2000}
+                    serviceType="boat_sales"
+                    serviceId={boatId}
+                    serviceDescription={`Boat Sales Visit - ${boatName}`}
+                    customerInfo={{
+                      name: user?.name || appointmentData.customerName || "Customer",
+                      email: user?.email || appointmentData.customerEmail || "customer@example.com",
+                      phone: appointmentData.customerPhone || ""
+                    }}
                     onPaymentComplete={handlePaymentComplete}
                     isPaid={paymentCompleted}
                   />

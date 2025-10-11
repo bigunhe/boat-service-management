@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Box, 
   Container, 
@@ -17,7 +17,12 @@ import {
   Divider,
   Button,
   Flex,
-  Stack
+  Stack,
+  Spinner,
+  Alert,
+  AlertIcon,
+  AlertTitle,
+  AlertDescription
 } from '@chakra-ui/react';
 import { 
   FaShip, 
@@ -31,16 +36,45 @@ import {
   FaWrench,
   FaLifeRing,
   FaChartLine,
-  FaClock
+  FaClock,
+  FaStar
 } from 'react-icons/fa';
 // import StunningFooter from '../../components/StunningFooter';
 import LiveChatWidget from '../../components/LiveChatWidget';
 
 const CompleteAboutPage = () => {
+  const [aboutData, setAboutData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
   const textColor = useColorModeValue('gray.900', 'white');
   const subTextColor = useColorModeValue('gray.700', 'gray.100');
   const cardBg = useColorModeValue('white', 'gray.800');
   const borderColor = useColorModeValue('gray.200', 'gray.600');
+
+  // Fetch about data from admin-managed content
+  useEffect(() => {
+    const fetchAboutData = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch('http://localhost:5001/api/about');
+        const result = await response.json();
+        
+        if (result.success) {
+          setAboutData(result.data);
+        } else {
+          setError('Failed to load about page data');
+        }
+      } catch (error) {
+        console.error('Error fetching about data:', error);
+        setError('Failed to connect to server');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAboutData();
+  }, []);
 
   const services = [
     {
@@ -81,13 +115,53 @@ const CompleteAboutPage = () => {
     }
   ];
 
-  const stats = [
+  // Loading state
+  if (loading) {
+    return (
+      <Container maxW="container.xl" py={20}>
+        <VStack spacing={8}>
+          <Spinner size="xl" color="blue.500" />
+          <Text fontSize="lg" color={textColor}>Loading about page...</Text>
+        </VStack>
+      </Container>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <Container maxW="container.xl" py={20}>
+        <Alert status="error" borderRadius="md">
+          <AlertIcon />
+          <Box>
+            <AlertTitle>Error loading content!</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Box>
+        </Alert>
+      </Container>
+    );
+  }
+
+  // Use dynamic data if available, otherwise fallback to static content
+  const companyInfo = aboutData?.companyInfo || {
+    title: "Marine Service Center",
+    subtitle: "Your Trusted Marine Partner",
+    description: "Your premier destination for professional marine services, boat maintenance, and expert technical support. With over 15 years of experience, we've been the trusted choice for boat owners who demand excellence.",
+    mission: "To provide exceptional marine services that exceed our customers' expectations while maintaining the highest standards of safety, quality, and environmental responsibility.",
+    vision: "To be the leading marine service provider in the region, recognized for our innovation, expertise, and unwavering commitment to customer satisfaction.",
+    values: ["Quality", "Safety", "Customer Satisfaction", "Innovation"]
+  };
+
+  const stats = aboutData?.statistics || [
     { number: "500+", label: "Boats Serviced" },
     { number: "15+", label: "Years Experience" },
     { number: "98%", label: "Customer Satisfaction" },
     { number: "24/7", label: "Support Available" }
   ];
 
+  const teamMembers = aboutData?.teamMembers || [];
+  const testimonials = aboutData?.testimonials || [];
+  const achievements = aboutData?.achievements || [];
 
   return (
     <Box minH="100vh" position="relative">
@@ -131,15 +205,12 @@ const CompleteAboutPage = () => {
                 bgGradient="linear(to-r, blue.600, cyan.500, teal.500)"
                 bgClip="text"
               >
-                Marine Service Center
+                {companyInfo.title}
               </Heading>
             </HStack>
             
             <Text fontSize="xl" color="white" maxW="3xl" lineHeight="tall" fontWeight="500" textShadow="0 2px 4px rgba(0,0,0,0.3)">
-              Your premier destination for professional marine services, boat maintenance, and expert technical support. 
-              With over 15 years of experience, we've been the trusted choice for boat owners who demand excellence.
-              We specialize in everything from routine maintenance to complex engine overhauls, ensuring your vessel 
-              performs at its peak while maintaining the highest safety standards.
+              {companyInfo.description}
             </Text>
 
             <HStack spacing={8} mt={8}>
@@ -166,72 +237,177 @@ const CompleteAboutPage = () => {
               Our Story
             </Heading>
             <Text fontSize="lg" color={subTextColor} maxW="4xl" mx="auto" lineHeight="tall" fontWeight="500">
-              Founded in 2008, Marine Service Center began as a small family business with a passion for boats and the ocean. 
-              What started as a local repair shop has grown into a comprehensive marine service provider, serving boat owners 
-              across the region. Our commitment to quality, reliability, and customer satisfaction has made us the go-to choice 
-              for professional marine services.
+              {companyInfo.subtitle ? `${companyInfo.subtitle}. ` : ''}{companyInfo.description}
             </Text>
             
             <VStack spacing={6} mt={8} align="stretch">
-              <Box>
-                <Heading size="lg" mb={4} color={textColor}>
-                  Our Mission
-                </Heading>
-                <Text fontSize="md" color={subTextColor} lineHeight="tall" fontWeight="500">
-                  To provide exceptional marine services that exceed our customers' expectations while maintaining the highest 
-                  standards of safety, quality, and environmental responsibility. We believe every boat owner deserves 
-                  reliable, professional service that keeps them safe on the water.
-                </Text>
-              </Box>
+              {companyInfo.mission && (
+                <Box>
+                  <Heading size="lg" mb={4} color={textColor}>
+                    Our Mission
+                  </Heading>
+                  <Text fontSize="md" color={subTextColor} lineHeight="tall" fontWeight="500">
+                    {companyInfo.mission}
+                  </Text>
+                </Box>
+              )}
               
-              <Box>
-                <Heading size="lg" mb={4} color={textColor}>
-                  Our Vision
-                </Heading>
-                <Text fontSize="md" color={subTextColor} lineHeight="tall" fontWeight="500">
-                  To be the leading marine service provider in the region, recognized for our innovation, expertise, and 
-                  unwavering commitment to customer satisfaction. We envision a future where every boat owner has access 
-                  to world-class marine services that enhance their boating experience.
-                </Text>
-              </Box>
+              {companyInfo.vision && (
+                <Box>
+                  <Heading size="lg" mb={4} color={textColor}>
+                    Our Vision
+                  </Heading>
+                  <Text fontSize="md" color={subTextColor} lineHeight="tall" fontWeight="500">
+                    {companyInfo.vision}
+                  </Text>
+                </Box>
+              )}
               
-              <Box>
-                <Heading size="lg" mb={4} color={textColor}>
-                  Our Values
-                </Heading>
-                <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
-                  <VStack align="start" spacing={3}>
-                    <HStack>
-                      <Icon as={FaShieldAlt} color="blue.500" />
-                      <Text fontWeight="semibold" color={textColor}>Safety First</Text>
-                    </HStack>
-                    <HStack>
-                      <Icon as={FaAward} color="green.500" />
-                      <Text fontWeight="semibold" color={textColor}>Quality Excellence</Text>
-                    </HStack>
-                    <HStack>
-                      <Icon as={FaUsers} color="purple.500" />
-                      <Text fontWeight="semibold" color={textColor}>Customer Focus</Text>
-                    </HStack>
-                  </VStack>
-                  <VStack align="start" spacing={3}>
-                    <HStack>
-                      <Icon as={FaTools} color="orange.500" />
-                      <Text fontWeight="semibold" color={textColor}>Technical Expertise</Text>
-                    </HStack>
-                    <HStack>
-                      <Icon as={FaClock} color="teal.500" />
-                      <Text fontWeight="semibold" color={textColor}>Reliability</Text>
-                    </HStack>
-                    <HStack>
-                      <Icon as={FaShip} color="cyan.500" />
-                      <Text fontWeight="semibold" color={textColor}>Marine Passion</Text>
-                    </HStack>
-                  </VStack>
-                </SimpleGrid>
-              </Box>
+              {companyInfo.values && companyInfo.values.length > 0 && (
+                <Box>
+                  <Heading size="lg" mb={4} color={textColor}>
+                    Our Values
+                  </Heading>
+                  <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+                    <VStack align="start" spacing={3}>
+                      {companyInfo.values.slice(0, Math.ceil(companyInfo.values.length / 2)).map((value, index) => (
+                        <HStack key={index}>
+                          <Icon as={FaShieldAlt} color="blue.500" />
+                          <Text fontWeight="semibold" color={textColor}>{value}</Text>
+                        </HStack>
+                      ))}
+                    </VStack>
+                    <VStack align="start" spacing={3}>
+                      {companyInfo.values.slice(Math.ceil(companyInfo.values.length / 2)).map((value, index) => (
+                        <HStack key={index}>
+                          <Icon as={FaAward} color="green.500" />
+                          <Text fontWeight="semibold" color={textColor}>{value}</Text>
+                        </HStack>
+                      ))}
+                    </VStack>
+                  </SimpleGrid>
+                </Box>
+              )}
             </VStack>
           </Box>
+
+          {/* Team Members Section */}
+          {teamMembers.length > 0 && (
+            <Box>
+              <Heading size="xl" textAlign="center" mb={12} color={textColor}>
+                Our Expert Team
+              </Heading>
+              <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
+                {teamMembers.map((member, index) => (
+                  <Card key={index} bg={cardBg} border="2px solid" borderColor={borderColor}>
+                    <CardBody textAlign="center" p={6}>
+                      <Image
+                        src={member.image}
+                        alt={member.name}
+                        borderRadius="full"
+                        boxSize="100px"
+                        mx="auto"
+                        mb={4}
+                        fallbackSrc="https://via.placeholder.com/100"
+                      />
+                      <Heading size="md" mb={2} color={textColor}>
+                        {member.name}
+                      </Heading>
+                      <Text fontSize="sm" color="blue.500" fontWeight="semibold" mb={2}>
+                        {member.role}
+                      </Text>
+                      <Text fontSize="sm" color={subTextColor} mb={3}>
+                        {member.experience}
+                      </Text>
+                      {member.bio && (
+                        <Text fontSize="xs" color={subTextColor} lineHeight="tall">
+                          {member.bio}
+                        </Text>
+                      )}
+                      {member.specialties && member.specialties.length > 0 && (
+                        <VStack spacing={1} mt={3}>
+                          {member.specialties.map((specialty, idx) => (
+                            <Badge key={idx} colorScheme="blue" variant="subtle">
+                              {specialty}
+                            </Badge>
+                          ))}
+                        </VStack>
+                      )}
+                    </CardBody>
+                  </Card>
+                ))}
+              </SimpleGrid>
+            </Box>
+          )}
+
+          {/* Testimonials Section */}
+          {testimonials.length > 0 && (
+            <Box>
+              <Heading size="xl" textAlign="center" mb={12} color={textColor}>
+                What Our Customers Say
+              </Heading>
+              <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
+                {testimonials.map((testimonial, index) => (
+                  <Card key={index} bg={cardBg} border="2px solid" borderColor={borderColor}>
+                    <CardBody p={6}>
+                      <VStack spacing={3} align="start">
+                        <HStack spacing={2}>
+                          {[...Array(5)].map((_, i) => (
+                            <Icon
+                              key={i}
+                              as={FaStar}
+                              color={i < testimonial.rating ? "yellow.400" : "gray.300"}
+                              boxSize={4}
+                            />
+                          ))}
+                        </HStack>
+                        <Text fontSize="sm" color={subTextColor} lineHeight="tall" fontStyle="italic">
+                          "{testimonial.text}"
+                        </Text>
+                        <VStack spacing={1} align="start" w="full">
+                          <Text fontWeight="semibold" color={textColor} fontSize="sm">
+                            {testimonial.name}
+                          </Text>
+                          <Text fontSize="xs" color={subTextColor}>
+                            {testimonial.boat}
+                          </Text>
+                        </VStack>
+                      </VStack>
+                    </CardBody>
+                  </Card>
+                ))}
+              </SimpleGrid>
+            </Box>
+          )}
+
+          {/* Achievements Section */}
+          {achievements.length > 0 && (
+            <Box>
+              <Heading size="xl" textAlign="center" mb={12} color={textColor}>
+                Our Achievements & Awards
+              </Heading>
+              <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
+                {achievements.map((achievement, index) => (
+                  <Card key={index} bg={cardBg} border="2px solid" borderColor={borderColor}>
+                    <CardBody textAlign="center" p={6}>
+                      <Icon as={FaAward} boxSize={12} color="gold" mb={4} />
+                      <Heading size="md" mb={3} color={textColor}>
+                        {achievement.title}
+                      </Heading>
+                      <Text fontSize="sm" color={subTextColor} lineHeight="tall" mb={3}>
+                        {achievement.description}
+                      </Text>
+                      {achievement.year && (
+                        <Badge colorScheme="blue" variant="solid">
+                          {achievement.year}
+                        </Badge>
+                      )}
+                    </CardBody>
+                  </Card>
+                ))}
+              </SimpleGrid>
+            </Box>
+          )}
 
           {/* Services Section */}
           <Box>

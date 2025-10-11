@@ -1,87 +1,733 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
   PointElement,
   LineElement,
+  BarElement,
   Title,
   Tooltip,
   Legend,
+  ArcElement,
 } from 'chart.js';
-import { Line } from 'react-chartjs-2';
-import { FaDollarSign, FaArrowLeft } from 'react-icons/fa';
+import { Line, Bar, Pie, Doughnut } from 'react-chartjs-2';
+import { FaArrowLeft, FaDollarSign, FaChartPie, FaChartLine, FaUsers, FaChartBar, FaBox, FaExclamationTriangle, FaDownload } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
+import { pdf, Document, Page, Text, View, StyleSheet, Table, TableHeader, TableBody, TableRow, TableCell } from '@react-pdf/renderer';
 
 ChartJS.register(
   CategoryScale,
   LinearScale,
   PointElement,
   LineElement,
+  BarElement,
   Title,
   Tooltip,
-  Legend
+  Legend,
+  ArcElement
 );
 
 const FinancialAnalytics = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const [data, setData] = useState({
-    revenueTrends: []
+  const [error, setError] = useState(null);
+  const [selectedPeriod, setSelectedPeriod] = useState('monthly');
+  const [generatingPDF, setGeneratingPDF] = useState(false);
+  
+  // Chart refs for PDF generation
+  const chartRefs = {
+    revenueByService: useRef(null),
+    revenueTrends: useRef(null),
+    servicePerformance: useRef(null),
+    inventoryVsSales: useRef(null),
+    revenueByDistrict: useRef(null)
+  };
+
+  // Financial Analytics Data States
+  const [revenueByService, setRevenueByService] = useState(null);
+  const [revenueTrends, setRevenueTrends] = useState(null);
+  const [customerSpending, setCustomerSpending] = useState(null);
+  const [servicePerformance, setServicePerformance] = useState(null);
+  const [inventoryVsSales, setInventoryVsSales] = useState(null);
+  const [revenueByDistrict, setRevenueByDistrict] = useState(null);
+  const [quickStats, setQuickStats] = useState({
+    totalRevenue: 0,
+    totalOrders: 0,
+    averageOrderValue: 0,
+    topSpenderAmount: 0
   });
 
   useEffect(() => {
-    fetchFinancialAnalytics();
+    loadFinancialAnalytics();
   }, []);
 
-  const fetchFinancialAnalytics = async () => {
-    setLoading(true);
+  useEffect(() => {
+    loadRevenueTrends();
+  }, [selectedPeriod]);
+
+  const loadFinancialAnalytics = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('token');
+      const headers = {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      };
+      const baseUrl = process.env.REACT_APP_API_URL || 'http://localhost:5001';
+
+      // Load all financial analytics data in parallel
+      const [
+        revenueByServiceRes,
+        revenueTrendsRes,
+        customerSpendingRes,
+        servicePerformanceRes,
+        inventoryVsSalesRes,
+        revenueByDistrictRes,
+        quickStatsRes
+      ] = await Promise.all([
+        fetch(`${baseUrl}/api/analytics/financial/revenue-by-service`, { headers }),
+        fetch(`${baseUrl}/api/analytics/financial/revenue-trends?period=${selectedPeriod}`, { headers }),
+        fetch(`${baseUrl}/api/analytics/financial/customer-spending`, { headers }),
+        fetch(`${baseUrl}/api/analytics/financial/service-performance`, { headers }),
+        fetch(`${baseUrl}/api/analytics/financial/inventory-vs-sales`, { headers }),
+        fetch(`${baseUrl}/api/analytics/financial/revenue-distribution-district`, { headers }),
+        fetch(`${baseUrl}/api/analytics/financial/quick-stats`, { headers })
+      ]);
+
+      const [
+        revenueByServiceData,
+        revenueTrendsData,
+        customerSpendingData,
+        servicePerformanceData,
+        inventoryVsSalesData,
+        revenueByDistrictData,
+        quickStatsData
+      ] = await Promise.all([
+        revenueByServiceRes.json(),
+        revenueTrendsRes.json(),
+        customerSpendingRes.json(),
+        servicePerformanceRes.json(),
+        inventoryVsSalesRes.json(),
+        revenueByDistrictRes.json(),
+        quickStatsRes.json()
+      ]);
+
+      console.log('Financial Analytics Data:', {
+        revenueByServiceData,
+        revenueTrendsData,
+        customerSpendingData,
+        servicePerformanceData,
+        inventoryVsSalesData,
+        revenueByDistrictData,
+        quickStatsData
+      });
+
+      if (revenueByServiceData.success) setRevenueByService(revenueByServiceData.data);
+      if (revenueTrendsData.success) setRevenueTrends(revenueTrendsData.data);
+      if (customerSpendingData.success) setCustomerSpending(customerSpendingData.data);
+      if (servicePerformanceData.success) setServicePerformance(servicePerformanceData.data);
+      if (inventoryVsSalesData.success) setInventoryVsSales(inventoryVsSalesData.data);
+      if (revenueByDistrictData.success) setRevenueByDistrict(revenueByDistrictData.data);
+      if (quickStatsData.success) setQuickStats(quickStatsData.data);
+
+    } catch (error) {
+      console.error('Failed to load financial analytics:', error);
+      setError('Failed to load financial analytics data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Chart configurations
+  const revenueByServiceConfig = {
+    data: {
+      labels: revenueByService?.services || [],
+      datasets: [{
+        label: 'Revenue (LKR)',
+        data: revenueByService?.revenues || [],
+        backgroundColor: [
+          '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4'
+        ],
+        borderWidth: 2,
+        borderColor: '#fff'
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'bottom',
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              const value = context.parsed;
+              return `${context.label}: LKR ${value.toLocaleString()}`;
+            }
+          }
+        }
+      }
+    }
+  };
+
+  const revenueTrendsConfig = {
+    data: {
+      labels: revenueTrends?.periods || [],
+      datasets: [{
+        label: 'Revenue (LKR)',
+        data: revenueTrends?.revenues || [],
+        borderColor: '#3B82F6',
+        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+        tension: 0.4,
+        fill: true
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: false
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              const value = context.parsed.y;
+              return `Revenue: LKR ${value.toLocaleString()}`;
+            }
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: {
+            callback: function(value) {
+              return 'LKR ' + value.toLocaleString();
+            }
+          }
+        }
+      }
+    }
+  };
+
+  const servicePerformanceConfig = {
+    data: {
+      labels: servicePerformance?.services || [],
+      datasets: [{
+        label: 'Average Value (LKR)',
+        data: servicePerformance?.averageValues || [],
+        backgroundColor: '#10B981',
+        borderColor: '#059669',
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: false
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              const value = context.parsed.y;
+              return `Average Value: LKR ${value.toLocaleString()}`;
+            }
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: {
+            callback: function(value) {
+              return 'LKR ' + value.toLocaleString();
+            }
+          }
+        }
+      }
+    }
+  };
+
+  const inventoryVsSalesConfig = {
+    data: {
+      labels: inventoryVsSales?.categories || [],
+      datasets: [{
+        label: 'Revenue (LKR)',
+        data: inventoryVsSales?.revenues || [],
+        backgroundColor: '#F59E0B',
+        borderColor: '#D97706',
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: false
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              const value = context.parsed.y;
+              return `Revenue: LKR ${value.toLocaleString()}`;
+            }
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: {
+            callback: function(value) {
+              return 'LKR ' + value.toLocaleString();
+            }
+          }
+        }
+      }
+    }
+  };
+
+  const revenueByDistrictConfig = {
+    data: {
+      labels: revenueByDistrict?.districts || [],
+      datasets: [{
+        label: 'Revenue (LKR)',
+        data: revenueByDistrict?.revenues || [],
+        backgroundColor: '#8B5CF6',
+        borderColor: '#7C3AED',
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: false
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              const value = context.parsed.y;
+              return `Revenue: LKR ${value.toLocaleString()}`;
+            }
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: {
+            callback: function(value) {
+              return 'LKR ' + value.toLocaleString();
+            }
+          }
+        }
+      }
+    }
+  };
+
+  const loadRevenueTrends = async () => {
     try {
       const token = localStorage.getItem('token');
       const headers = {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
       };
+      const baseUrl = process.env.REACT_APP_API_URL || 'http://localhost:5001';
 
-      const revenueTrendsRes = await fetch('http://localhost:5001/api/users/analytics/revenue-trends', { headers });
-      const revenueTrends = await revenueTrendsRes.json();
-
-      setData({
-        revenueTrends: revenueTrends.data || []
-      });
+      const response = await fetch(`${baseUrl}/api/analytics/financial/revenue-trends?period=${selectedPeriod}`, { headers });
+      const data = await response.json();
+      
+      if (data.success) {
+        setRevenueTrends(data.data);
+      }
     } catch (error) {
-      console.error('Error fetching financial analytics:', error);
-    } finally {
-      setLoading(false);
+      console.error('Error loading revenue trends:', error);
     }
   };
 
-  // Chart configuration
-  const revenueTrendsConfig = {
-    labels: data.revenueTrends.map(item => `${item._id.year}/${String(item._id.month).padStart(2, '0')}`),
-    datasets: [
-      {
-        label: 'Revenue (LKR)',
-        data: data.revenueTrends.map(item => item.totalRevenue),
-        borderColor: 'rgb(16, 185, 129)',
-        backgroundColor: 'rgba(16, 185, 129, 0.2)',
-        tension: 0.1
-      }
-    ]
+  const periods = [
+    { value: 'daily', label: 'Daily' },
+    { value: 'weekly', label: 'Weekly' },
+    { value: 'monthly', label: 'Monthly' },
+    { value: 'yearly', label: 'Yearly' }
+  ];
+
+  // Helper function to format currency
+  const formatCurrency = (amount) => {
+    return `LKR ${amount?.toLocaleString() || '0'}`;
   };
 
-  // Calculate summary statistics
-  const totalRevenue = data.revenueTrends.reduce((sum, item) => sum + item.totalRevenue, 0);
-  const totalServices = data.revenueTrends.reduce((sum, item) => sum + item.count, 0);
-  const averageRevenue = totalServices > 0 ? totalRevenue / totalServices : 0;
-  const monthlyGrowth = data.revenueTrends.length > 1 
-    ? ((data.revenueTrends[data.revenueTrends.length - 1].totalRevenue - data.revenueTrends[0].totalRevenue) / data.revenueTrends[0].totalRevenue * 100)
-    : 0;
+  // Helper function to format date
+  const formatDate = (date) => {
+    return new Date(date).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
+  // Styles for PDF
+  const styles = StyleSheet.create({
+    page: {
+      flexDirection: 'column',
+      backgroundColor: '#ffffff',
+      padding: 30,
+      fontSize: 12,
+    },
+    header: {
+      textAlign: 'center',
+      marginBottom: 30,
+      borderBottom: '2 solid #333333',
+      paddingBottom: 20,
+    },
+    companyName: {
+      fontSize: 24,
+      fontWeight: 'bold',
+      marginBottom: 10,
+    },
+    reportTitle: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      marginBottom: 15,
+    },
+    contactInfo: {
+      fontSize: 10,
+      marginBottom: 10,
+    },
+    generatedDate: {
+      fontSize: 10,
+      color: '#666666',
+    },
+    section: {
+      marginBottom: 20,
+    },
+    sectionTitle: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      marginBottom: 15,
+      color: '#2c3e50',
+      borderBottom: '1 solid #dddddd',
+      paddingBottom: 5,
+    },
+    statsGrid: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginBottom: 20,
+    },
+    statCard: {
+      border: '1 solid #dddddd',
+      padding: 15,
+      textAlign: 'center',
+      backgroundColor: '#f9f9f9',
+      flex: 1,
+      marginHorizontal: 5,
+    },
+    statLabel: {
+      fontSize: 10,
+      color: '#666666',
+      marginBottom: 5,
+    },
+    statValue: {
+      fontSize: 14,
+      fontWeight: 'bold',
+      color: '#2c3e50',
+    },
+    table: {
+      marginBottom: 15,
+    },
+    tableHeader: {
+      backgroundColor: '#f5f5f5',
+      fontWeight: 'bold',
+    },
+    tableRow: {
+      flexDirection: 'row',
+      borderBottom: '1 solid #dddddd',
+    },
+    tableCell: {
+      padding: 8,
+      flex: 1,
+      borderRight: '1 solid #dddddd',
+    },
+    pageBreak: {
+      pageBreakBefore: 'always',
+    },
+  });
+
+  // Generate PDF Report using React-PDF
+  const generatePDFReport = async () => {
+    try {
+      setGeneratingPDF(true);
+      
+      // Create PDF document
+      const MyDocument = () => (
+        <Document>
+          {/* Page 1: Header and Executive Summary */}
+          <Page size="A4" style={styles.page}>
+            <View style={styles.header}>
+              <Text style={styles.companyName}>MARINE SERVICE CENTER</Text>
+              <Text style={styles.reportTitle}>Financial Analytics Report as at {formatDate(new Date())}</Text>
+              <Text style={styles.contactInfo}>Email: info@marineservicecenter.com</Text>
+              <Text style={styles.contactInfo}>Phone: +94 11 234 5678, +94 76 123 4568</Text>
+              <Text style={styles.contactInfo}>Address: Colombo Marina, Port City, 00100</Text>
+              <Text style={styles.generatedDate}>Generated: {new Date().toLocaleString()}</Text>
+            </View>
+
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>EXECUTIVE SUMMARY</Text>
+              <View style={styles.statsGrid}>
+                <View style={styles.statCard}>
+                  <Text style={styles.statLabel}>Total Revenue</Text>
+                  <Text style={styles.statValue}>{formatCurrency(quickStats?.totalRevenue)}</Text>
+                </View>
+                <View style={styles.statCard}>
+                  <Text style={styles.statLabel}>Total Orders</Text>
+                  <Text style={styles.statValue}>{quickStats?.totalOrders?.toLocaleString() || '0'}</Text>
+                </View>
+                <View style={styles.statCard}>
+                  <Text style={styles.statLabel}>Average Order Value</Text>
+                  <Text style={styles.statValue}>{formatCurrency(quickStats?.averageOrderValue)}</Text>
+                </View>
+                <View style={styles.statCard}>
+                  <Text style={styles.statLabel}>Top Spender Amount</Text>
+                  <Text style={styles.statValue}>{formatCurrency(quickStats?.topSpenderAmount)}</Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Revenue by Service Type */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>REVENUE BY SERVICE TYPE</Text>
+              <View style={styles.table}>
+                <View style={[styles.tableRow, styles.tableHeader]}>
+                  <Text style={[styles.tableCell, { fontWeight: 'bold' }]}>Service</Text>
+                  <Text style={[styles.tableCell, { fontWeight: 'bold' }]}>Revenue</Text>
+                  <Text style={[styles.tableCell, { fontWeight: 'bold' }]}>Percentage</Text>
+                </View>
+                {revenueByService?.services && revenueByService?.revenues ? 
+                  revenueByService.services.map((service, index) => {
+                    const revenue = revenueByService.revenues[index] || 0;
+                    const percentage = ((revenue / quickStats?.totalRevenue) * 100).toFixed(1);
+                    return (
+                      <View key={index} style={styles.tableRow}>
+                        <Text style={styles.tableCell}>{service}</Text>
+                        <Text style={styles.tableCell}>{formatCurrency(revenue)}</Text>
+                        <Text style={styles.tableCell}>{percentage}%</Text>
+                      </View>
+                    );
+                  }) : (
+                    <View style={styles.tableRow}>
+                      <Text style={styles.tableCell}>No data available</Text>
+                    </View>
+                  )
+                }
+              </View>
+            </View>
+          </Page>
+
+          {/* Page 2: Revenue Trends */}
+          <Page size="A4" style={styles.page}>
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>REVENUE TRENDS</Text>
+              <View style={styles.table}>
+                <View style={[styles.tableRow, styles.tableHeader]}>
+                  <Text style={[styles.tableCell, { fontWeight: 'bold' }]}>Period</Text>
+                  <Text style={[styles.tableCell, { fontWeight: 'bold' }]}>Revenue</Text>
+                </View>
+                {revenueTrends?.periods && revenueTrends?.revenues ? 
+                  revenueTrends.periods.map((period, index) => (
+                    <View key={index} style={styles.tableRow}>
+                      <Text style={styles.tableCell}>{period}</Text>
+                      <Text style={styles.tableCell}>{formatCurrency(revenueTrends.revenues[index])}</Text>
+                    </View>
+                  )) : (
+                    <View style={styles.tableRow}>
+                      <Text style={styles.tableCell}>No data available</Text>
+                    </View>
+                  )
+                }
+              </View>
+            </View>
+
+            {/* Service Performance */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>SERVICE PERFORMANCE</Text>
+              <View style={styles.table}>
+                <View style={[styles.tableRow, styles.tableHeader]}>
+                  <Text style={[styles.tableCell, { fontWeight: 'bold' }]}>Service</Text>
+                  <Text style={[styles.tableCell, { fontWeight: 'bold' }]}>Average Value</Text>
+                </View>
+                {servicePerformance?.services && servicePerformance?.averageValues ? 
+                  servicePerformance.services.map((service, index) => (
+                    <View key={index} style={styles.tableRow}>
+                      <Text style={styles.tableCell}>{service}</Text>
+                      <Text style={styles.tableCell}>{formatCurrency(servicePerformance.averageValues[index] || 0)}</Text>
+                    </View>
+                  )) : (
+                    <View style={styles.tableRow}>
+                      <Text style={styles.tableCell}>No data available</Text>
+                    </View>
+                  )
+                }
+              </View>
+            </View>
+
+            {/* Inventory vs Sales */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>INVENTORY VS SALES</Text>
+              <View style={styles.table}>
+                <View style={[styles.tableRow, styles.tableHeader]}>
+                  <Text style={[styles.tableCell, { fontWeight: 'bold' }]}>Category</Text>
+                  <Text style={[styles.tableCell, { fontWeight: 'bold' }]}>Revenue</Text>
+                </View>
+                {inventoryVsSales?.categories && inventoryVsSales?.revenues ? 
+                  inventoryVsSales.categories.map((category, index) => (
+                    <View key={index} style={styles.tableRow}>
+                      <Text style={styles.tableCell}>{category}</Text>
+                      <Text style={styles.tableCell}>{formatCurrency(inventoryVsSales.revenues[index] || 0)}</Text>
+                    </View>
+                  )) : (
+                    <View style={styles.tableRow}>
+                      <Text style={styles.tableCell}>No data available</Text>
+                    </View>
+                  )
+                }
+              </View>
+            </View>
+          </Page>
+
+          {/* Page 3: Revenue by District and Top Spenders */}
+          <Page size="A4" style={styles.page}>
+            {/* Revenue by District */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>REVENUE BY DISTRICT</Text>
+              <View style={styles.table}>
+                <View style={[styles.tableRow, styles.tableHeader]}>
+                  <Text style={[styles.tableCell, { fontWeight: 'bold' }]}>District</Text>
+                  <Text style={[styles.tableCell, { fontWeight: 'bold' }]}>Revenue</Text>
+                </View>
+                {revenueByDistrict?.districts && revenueByDistrict?.revenues ? 
+                  revenueByDistrict.districts.map((district, index) => (
+                    <View key={index} style={styles.tableRow}>
+                      <Text style={styles.tableCell}>{district}</Text>
+                      <Text style={styles.tableCell}>{formatCurrency(revenueByDistrict.revenues[index] || 0)}</Text>
+                    </View>
+                  )) : (
+                    <View style={styles.tableRow}>
+                      <Text style={styles.tableCell}>No data available</Text>
+                    </View>
+                  )
+                }
+              </View>
+            </View>
+
+            {/* Top Spenders */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>TOP SPENDERS ANALYSIS</Text>
+              <View style={styles.table}>
+                <View style={[styles.tableRow, styles.tableHeader]}>
+                  <Text style={[styles.tableCell, { fontWeight: 'bold' }]}>Rank</Text>
+                  <Text style={[styles.tableCell, { fontWeight: 'bold' }]}>Customer Name</Text>
+                  <Text style={[styles.tableCell, { fontWeight: 'bold' }]}>Total Spent</Text>
+                  <Text style={[styles.tableCell, { fontWeight: 'bold' }]}>Orders</Text>
+                  <Text style={[styles.tableCell, { fontWeight: 'bold' }]}>Avg Order Value</Text>
+                </View>
+                {customerSpending?.topSpenders ? 
+                  customerSpending.topSpenders.slice(0, 10).map((customer, index) => (
+                    <View key={index} style={styles.tableRow}>
+                      <Text style={styles.tableCell}>{index + 1}</Text>
+                      <Text style={styles.tableCell}>{customer.name}</Text>
+                      <Text style={styles.tableCell}>{formatCurrency(customer.totalSpent)}</Text>
+                      <Text style={styles.tableCell}>{customer.orderCount || 0}</Text>
+                      <Text style={styles.tableCell}>{formatCurrency(customer.averageOrderValue)}</Text>
+                    </View>
+                  )) : (
+                    <View style={styles.tableRow}>
+                      <Text style={styles.tableCell}>No data available</Text>
+                    </View>
+                  )
+                }
+              </View>
+            </View>
+          </Page>
+        </Document>
+      );
+
+      // Generate PDF blob
+      const pdfBlob = await pdf(<MyDocument />).toBlob();
+      
+      // Create download link
+      const url = URL.createObjectURL(pdfBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `Financial_Analytics_Report_${new Date().toISOString().split('T')[0]}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      alert('Failed to generate PDF report. Please try again.');
+    } finally {
+      setGeneratingPDF(false);
+    }
+  };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600"></div>
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="animate-pulse">
+            <div className="h-8 bg-gray-200 rounded w-1/4 mb-6"></div>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+              {[1,2,3,4].map(i => (
+                <div key={i} className="bg-white rounded-lg shadow p-6">
+                  <div className="h-4 bg-gray-200 rounded mb-2"></div>
+                  <div className="h-8 bg-gray-200 rounded"></div>
+                </div>
+              ))}
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {[1,2,3,4].map(i => (
+                <div key={i} className="bg-white rounded-lg shadow p-6">
+                  <div className="h-64 bg-gray-200 rounded"></div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+            <div className="flex items-center">
+              <FaExclamationTriangle className="text-red-500 mr-3" />
+              <div>
+                <h3 className="text-lg font-medium text-red-800">Error Loading Analytics</h3>
+                <p className="text-red-600 mt-1">{error}</p>
+                <button
+                  onClick={loadFinancialAnalytics}
+                  className="mt-3 bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700"
+                >
+                  Retry
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -91,161 +737,216 @@ const FinancialAnalytics = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
-          <div className="flex items-center mb-4">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center">
+              <button
+                onClick={() => navigate('/dashboard')}
+                className="mr-4 p-2 text-gray-600 hover:text-blue-600 hover:bg-gray-100 rounded-lg transition-colors"
+                title="Back to Dashboard"
+              >
+                <FaArrowLeft className="h-5 w-5" />
+              </button>
+              <h1 className="text-3xl font-bold text-gray-900">Financial Analytics</h1>
+            </div>
             <button
-              onClick={() => navigate('/dashboard')}
-              className="mr-4 p-2 text-gray-600 hover:text-teal-600 hover:bg-gray-100 rounded-lg transition-colors"
-              title="Back to Dashboard"
+              onClick={generatePDFReport}
+              disabled={generatingPDF || loading}
+              className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              <FaArrowLeft className="h-5 w-5" />
+              <FaDownload className="mr-2" />
+              {generatingPDF ? 'Generating PDF...' : 'Download Report'}
             </button>
-            <h1 className="text-3xl font-bold text-gray-900">Financial Analytics</h1>
           </div>
-          <p className="text-gray-600">Revenue trends and financial insights</p>
+          <p className="text-gray-600">Comprehensive financial insights and revenue analysis</p>
         </div>
 
-        {/* Summary Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-          <div className="bg-white p-6 rounded-lg shadow">
+        {/* Quick Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <div className="bg-white rounded-lg shadow p-6">
             <div className="flex items-center">
-              <FaDollarSign className="text-green-600 text-2xl mr-3" />
+              <FaDollarSign className="text-green-500 text-2xl mr-3" />
               <div>
                 <p className="text-sm font-medium text-gray-600">Total Revenue</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  LKR {totalRevenue.toLocaleString()}
+                  LKR {quickStats.totalRevenue?.toLocaleString() || '0'}
                 </p>
               </div>
             </div>
           </div>
-          <div className="bg-white p-6 rounded-lg shadow">
+          <div className="bg-white rounded-lg shadow p-6">
             <div className="flex items-center">
-              <FaDollarSign className="text-blue-600 text-2xl mr-3" />
+              <FaBox className="text-blue-500 text-2xl mr-3" />
               <div>
-                <p className="text-sm font-medium text-gray-600">Total Services</p>
-                <p className="text-2xl font-bold text-gray-900">{totalServices}</p>
-              </div>
-            </div>
-          </div>
-          <div className="bg-white p-6 rounded-lg shadow">
-            <div className="flex items-center">
-              <FaDollarSign className="text-purple-600 text-2xl mr-3" />
-              <div>
-                <p className="text-sm font-medium text-gray-600">Average Revenue</p>
+                <p className="text-sm font-medium text-gray-600">Total Orders</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  LKR {averageRevenue.toLocaleString()}
+                  {quickStats.totalOrders?.toLocaleString() || '0'}
                 </p>
               </div>
             </div>
           </div>
-          <div className="bg-white p-6 rounded-lg shadow">
+          <div className="bg-white rounded-lg shadow p-6">
             <div className="flex items-center">
-              <FaDollarSign className={`text-2xl mr-3 ${monthlyGrowth >= 0 ? 'text-green-600' : 'text-red-600'}`} />
+              <FaChartLine className="text-purple-500 text-2xl mr-3" />
               <div>
-                <p className="text-sm font-medium text-gray-600">Growth Rate</p>
-                <p className={`text-2xl font-bold ${monthlyGrowth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {monthlyGrowth.toFixed(1)}%
+                <p className="text-sm font-medium text-gray-600">Avg Order Value</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  LKR {quickStats.averageOrderValue?.toLocaleString() || '0'}
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="flex items-center">
+              <FaUsers className="text-orange-500 text-2xl mr-3" />
+              <div>
+                <p className="text-sm font-medium text-gray-600">Top Spender</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  LKR {quickStats.topSpenderAmount?.toLocaleString() || '0'}
                 </p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Revenue Trends Chart */}
-        <div className="bg-white p-6 rounded-lg shadow">
-          <div className="flex items-center mb-4">
-            <FaDollarSign className="text-green-600 mr-2" />
-            <h3 className="text-lg font-semibold">Revenue Trends</h3>
+        {/* Charts Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          {/* Revenue by Service Type */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="flex items-center mb-4">
+              <FaChartPie className="text-blue-500 mr-2" />
+              <h3 className="text-lg font-semibold text-gray-900">Revenue by Service Type</h3>
+            </div>
+            <p className="text-sm text-gray-600 mb-4">
+              Distribution of total revenue across different service categories
+            </p>
+            <div className="h-64" ref={chartRefs.revenueByService}>
+              <Pie data={revenueByServiceConfig.data} options={revenueByServiceConfig.options} />
+            </div>
           </div>
-          <div className="h-64">
-            <Line data={revenueTrendsConfig} options={{
-              responsive: true,
-              maintainAspectRatio: false,
-              plugins: {
-                legend: {
-                  position: 'top',
-                },
-              },
-              scales: {
-                y: {
-                  beginAtZero: true,
-                  ticks: {
-                    callback: function(value) {
-                      return 'LKR ' + value.toLocaleString();
-                    }
-                  }
-                }
-              }
-            }} />
+
+          {/* Revenue Trends */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center">
+                <FaChartBar className="text-green-500 mr-2" />
+                <h3 className="text-lg font-semibold text-gray-900">Revenue Trends</h3>
+              </div>
+              <select
+                value={selectedPeriod}
+                onChange={(e) => setSelectedPeriod(e.target.value)}
+                className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                {periods.map(period => (
+                  <option key={period.value} value={period.value}>
+                    {period.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <p className="text-sm text-gray-600 mb-4">
+              Revenue trends showing business growth over time
+            </p>
+            <div className="h-64" ref={chartRefs.revenueTrends}>
+              <Line data={revenueTrendsConfig.data} options={revenueTrendsConfig.options} />
+            </div>
+          </div>
+
+          {/* Service Performance */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="flex items-center mb-4">
+              <FaChartLine className="text-purple-500 mr-2" />
+              <h3 className="text-lg font-semibold text-gray-900">Service Performance</h3>
+            </div>
+            <p className="text-sm text-gray-600 mb-4">
+              Average value per service type showing most profitable services
+            </p>
+            <div className="h-64" ref={chartRefs.servicePerformance}>
+              <Bar data={servicePerformanceConfig.data} options={servicePerformanceConfig.options} />
+            </div>
+          </div>
+
+          {/* Inventory vs Sales */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="flex items-center mb-4">
+              <FaBox className="text-orange-500 mr-2" />
+              <h3 className="text-lg font-semibold text-gray-900">Inventory vs Sales</h3>
+            </div>
+            <p className="text-sm text-gray-600 mb-4">
+              Revenue generated by each spare parts category
+            </p>
+            <div className="h-64" ref={chartRefs.inventoryVsSales}>
+              <Bar data={inventoryVsSalesConfig.data} options={inventoryVsSalesConfig.options} />
+            </div>
           </div>
         </div>
 
-        {/* Revenue Details Table */}
-        {data.revenueTrends.length > 0 && (
-          <div className="mt-6 bg-white rounded-lg shadow">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-semibold">Monthly Revenue Breakdown</h3>
+        {/* Revenue Distribution Charts */}
+        <div className="grid grid-cols-1 lg:grid-cols-1 gap-6 mb-8">
+          {/* Revenue by District */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="flex items-center mb-4">
+              <FaChartBar className="text-purple-500 mr-2" />
+              <h3 className="text-lg font-semibold text-gray-900">Revenue by District</h3>
             </div>
+            <p className="text-sm text-gray-600 mb-4">
+              Revenue distribution across different districts
+            </p>
+            <div className="h-64" ref={chartRefs.revenueByDistrict}>
+              <Bar data={revenueByDistrictConfig.data} options={revenueByDistrictConfig.options} />
+            </div>
+          </div>
+        </div>
+
+        {/* Customer Spending Analysis */}
+        {customerSpending && (
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="flex items-center mb-4">
+              <FaUsers className="text-indigo-500 mr-2" />
+              <h3 className="text-lg font-semibold text-gray-900">Top Spenders</h3>
+            </div>
+            <p className="text-sm text-gray-600 mb-4">
+              Customers with highest total spending across all services
+            </p>
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Month
+                      Customer
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Revenue (LKR)
+                      Total Spent
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Services
+                      Orders
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Average per Service
+                      Avg Order Value
                     </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {data.revenueTrends.map((item, index) => {
-                    const avgPerService = item.count > 0 ? item.totalRevenue / item.count : 0;
-                    return (
-                      <tr key={index}>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                          {item._id.year}/{String(item._id.month).padStart(2, '0')}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          LKR {item.totalRevenue.toLocaleString()}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {item.count}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          LKR {avgPerService.toLocaleString()}
-                        </td>
-                      </tr>
-                    );
-                  })}
+                  {customerSpending.topSpenders?.slice(0, 10).map((customer, index) => (
+                    <tr key={index} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        {customer.name}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        LKR {customer.totalSpent?.toLocaleString()}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {customer.orderCount}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        LKR {customer.averageOrderValue?.toLocaleString()}
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
           </div>
         )}
-
-        {/* Payment Method Info */}
-        <div className="mt-6 bg-white p-6 rounded-lg shadow">
-          <div className="flex items-center mb-4">
-            <FaDollarSign className="text-blue-600 mr-2" />
-            <h3 className="text-lg font-semibold">Payment Information</h3>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-blue-50 p-4 rounded-lg">
-              <h4 className="font-medium text-blue-900 mb-2">Payment Gateway</h4>
-              <p className="text-blue-700">Stripe</p>
-            </div>
-            <div className="bg-green-50 p-4 rounded-lg">
-              <h4 className="font-medium text-green-900 mb-2">Transaction Status</h4>
-              <p className="text-green-700">All payments processed through Stripe</p>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );

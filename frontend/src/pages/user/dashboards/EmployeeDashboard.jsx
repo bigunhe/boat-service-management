@@ -1,13 +1,14 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
+import io from 'socket.io-client';
 import { 
   FaTools, 
   FaShip, 
   FaCar, 
   FaShoppingCart, 
   FaUser, 
-  FaHeadset,
+  FaComments,
   FaBell,
   FaChartBar,
   FaClock,
@@ -19,10 +20,136 @@ import {
 const EmployeeDashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [socket, setSocket] = useState(null);
+  const [dashboardStats, setDashboardStats] = useState({
+    pendingOrders: 0,
+    pendingRepairs: 0,
+    activeRides: 0,
+    purchaseVisits: 0
+  });
+  const [loadingStats, setLoadingStats] = useState(true);
 
   const firstName = user?.name?.split(' ')[0] || 'Employee';
 
+  // Initialize socket and load notifications
+  useEffect(() => {
+    if (user) {
+      const newSocket = io('http://localhost:5001');
+      setSocket(newSocket);
+
+      // Request notifications for admin
+      newSocket.emit('request-notifications', 'admin');
+
+      // Listen for notification updates
+      newSocket.on('notifications-update', (data) => {
+        if (data.userId === 'admin') {
+          setUnreadCount(data.unreadCount);
+        }
+      });
+
+      // Load initial notification count and dashboard stats
+      loadNotificationCount();
+      loadDashboardStats();
+
+      return () => {
+        newSocket.close();
+      };
+    }
+  }, [user]);
+
+  const loadNotificationCount = async () => {
+    try {
+      const response = await fetch(`http://localhost:5001/api/chat/notifications/admin`);
+      const data = await response.json();
+      if (data.success) {
+        setUnreadCount(data.data.unreadCount);
+      }
+    } catch (error) {
+      console.error('Failed to load notification count:', error);
+    }
+  };
+
+  const loadDashboardStats = async () => {
+    try {
+      setLoadingStats(true);
+      const token = localStorage.getItem('token');
+      const headers = {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      };
+
+      const baseUrl = process.env.REACT_APP_API_URL || 'http://localhost:5001';
+
+      // Fetch all stats in parallel
+      const [
+        ordersRes,
+        repairsRes,
+        ridesRes,
+        appointmentsRes
+      ] = await Promise.all([
+        fetch(`${baseUrl}/api/orders/employee/stats`, { headers }),
+        fetch(`${baseUrl}/api/boat-repairs/stats`, { headers }),
+        fetch(`${baseUrl}/api/boat-rides/stats`, { headers }),
+        fetch(`${baseUrl}/api/appointments/stats`, { headers })
+      ]);
+
+      const [
+        ordersData,
+        repairsData,
+        ridesData,
+        appointmentsData
+      ] = await Promise.all([
+        ordersRes.json(),
+        repairsRes.json(),
+        ridesRes.json(),
+        appointmentsRes.json()
+      ]);
+
+
+      // Extract counts from statusCounts arrays
+      const pendingOrdersCount = ordersData.success && ordersData.data.statusCounts 
+        ? ordersData.data.statusCounts.find(item => item._id === 'confirmed')?.count || 0
+        : 0;
+
+      const pendingRepairsCount = repairsData.success && repairsData.data.byStatus
+        ? repairsData.data.byStatus.find(item => item._id === 'assigned')?.count || 0
+        : 0;
+
+      const activeRidesCount = ridesData.success && ridesData.data.byStatus
+        ? ridesData.data.byStatus.filter(item => ['pending', 'confirmed', 'in-progress'].includes(item._id))
+            .reduce((sum, item) => sum + item.count, 0)
+        : 0;
+
+      const pendingVisitsCount = appointmentsData.success && appointmentsData.data.byStatus
+        ? appointmentsData.data.byStatus.filter(item => ['Pending', 'Confirmed'].includes(item._id))
+            .reduce((sum, item) => sum + item.count, 0)
+        : 0;
+
+      setDashboardStats({
+        pendingOrders: pendingOrdersCount,
+        pendingRepairs: pendingRepairsCount,
+        activeRides: activeRidesCount,
+        purchaseVisits: pendingVisitsCount
+      });
+
+    } catch (error) {
+      console.error('Failed to load dashboard stats:', error);
+    } finally {
+      setLoadingStats(false);
+    }
+  };
+
   const mainFunctions = [
+    { 
+      name: 'Order Management', 
+      icon: <FaShoppingCart />, 
+      description: 'Manage and track spare parts orders, update order status', 
+      color: 'bg-gradient-to-br from-green-500 to-teal-500',
+      route: '/employee/orders',
+      status: 'active',
+      count: 0
+    },
     { 
       name: 'Repair Management', 
       icon: <FaTools />, 
@@ -37,7 +164,7 @@ const EmployeeDashboard = () => {
       icon: <FaShip />, 
       description: 'Manage boat ride bookings, assign captains, and track schedules', 
       color: 'bg-gradient-to-br from-amber-500 to-orange-500',
-      route: '/employee/ride-management',
+      route: '/employee/bookings',
       status: 'active',
       count: 8
     },
@@ -60,13 +187,22 @@ const EmployeeDashboard = () => {
       count: 7
     },
     { 
-      name: 'Customer Support', 
-      icon: <FaHeadset />, 
-      description: 'Respond to customer inquiries and provide support', 
-      color: 'bg-gradient-to-br from-amber-600 to-orange-600',
-      route: '/employee/customer-support',
-      status: 'normal',
-      count: 3
+      name: 'Customer Chat Support', 
+      icon: <FaComments />, 
+      description: 'Live chat with customers to resolve their problems', 
+      color: 'bg-gradient-to-br from-blue-600 to-cyan-600',
+      route: '/employee/chat-dashboard',
+      status: 'active',
+      count: unreadCount
+    },
+    { 
+      name: 'Package Management', 
+      icon: <FaShip />, 
+      description: 'Create and manage boat service packages', 
+      color: 'bg-gradient-to-br from-purple-500 to-pink-500',
+      route: '/employee/packages',
+      status: 'active',
+      count: 0
     }
   ];
 
@@ -81,10 +217,10 @@ const EmployeeDashboard = () => {
   ];
 
   const quickStats = [
-    { label: 'Pending Repairs', value: '0', color: 'text-orange-600', bgColor: 'bg-orange-100', icon: <FaExclamationTriangle /> },
-    { label: 'Active Rides', value: '0', color: 'text-amber-600', bgColor: 'bg-amber-100', icon: <FaShip /> },
-    { label: 'Purchase Visits', value: '0', color: 'text-yellow-600', bgColor: 'bg-yellow-100', icon: <FaCar /> },
-    { label: 'Orders to Process', value: '0', color: 'text-red-600', bgColor: 'bg-red-100', icon: <FaShoppingCart /> }
+    { label: 'Confirmed Orders', value: loadingStats ? '...' : dashboardStats.pendingOrders.toString(), color: 'text-green-600', bgColor: 'bg-green-100', icon: <FaShoppingCart /> },
+    { label: 'Assigned Repairs', value: loadingStats ? '...' : dashboardStats.pendingRepairs.toString(), color: 'text-orange-600', bgColor: 'bg-orange-100', icon: <FaExclamationTriangle /> },
+    { label: 'Active Rides', value: loadingStats ? '...' : dashboardStats.activeRides.toString(), color: 'text-amber-600', bgColor: 'bg-amber-100', icon: <FaShip /> },
+    { label: 'Pending Visits', value: loadingStats ? '...' : dashboardStats.purchaseVisits.toString(), color: 'text-yellow-600', bgColor: 'bg-yellow-100', icon: <FaCar /> }
   ];
 
 
@@ -120,22 +256,28 @@ const EmployeeDashboard = () => {
                 <p className="text-gray-600 mt-1">
                   Employee Dashboard - Manage your tasks and serve customers
                 </p>
-                <div className="mt-2">
-                  <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gradient-to-r from-orange-100 to-amber-100 text-orange-800 border border-orange-200">
-                    <FaTasks className="mr-2" />
-                    Employee Account
-                  </span>
-                </div>
               </div>
             </div>
-            <div className="flex items-center space-x-4">
-              <div className="relative">
-                <FaBell className="text-orange-400 text-xl" />
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                  3
+            
+            {/* Quick Chat Access Button */}
+            <button 
+              onClick={() => navigate('/employee/chat-dashboard')}
+              className="bg-gradient-to-r from-orange-500 to-amber-500 text-white px-6 py-3 rounded-lg shadow-lg hover:from-orange-600 hover:to-amber-600 transition-all duration-300 transform hover:scale-105 relative flex items-center space-x-2"
+            >
+              <FaComments className="text-lg" />
+              <span className="font-semibold">Chat Support</span>
+              {unreadCount > 0 && (
+                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
+                  {unreadCount}
                 </span>
-              </div>
-            </div>
+              )}
+            </button>
+          </div>
+          <div className="mt-2">
+            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gradient-to-r from-orange-100 to-amber-100 text-orange-800 border border-orange-200">
+              <FaTasks className="mr-2" />
+              Employee Account
+            </span>
           </div>
         </div>
       </div>

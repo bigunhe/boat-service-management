@@ -1,9 +1,130 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaUser, FaShip, FaChartBar, FaTools, FaCalendarAlt, FaHistory, FaCreditCard, FaHeadset, FaShoppingCart, FaCar, FaHeart, FaStar } from 'react-icons/fa';
+import { FaUser, FaShip, FaChartBar, FaTools, FaCalendarAlt, FaHistory, FaCreditCard, FaHeadset, FaShoppingCart, FaCar, FaHeart, FaStar, FaBell } from 'react-icons/fa';
+import { useAuth } from '../../../context/AuthContext';
+import io from 'socket.io-client';
 
 const CustomerDashboard = ({ firstName }) => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [socket, setSocket] = useState(null);
+  const [totalSpent, setTotalSpent] = useState(0);
+  const [loadingSpent, setLoadingSpent] = useState(true);
+  const [cartItemsCount, setCartItemsCount] = useState(0);
+  const [loadingCart, setLoadingCart] = useState(true);
+
+  // Initialize socket and load notifications
+  useEffect(() => {
+    if (user) {
+      const newSocket = io('http://localhost:5001');
+      setSocket(newSocket);
+
+      // Request notifications
+      newSocket.emit('request-notifications', user.email);
+
+      // Listen for notification updates
+      newSocket.on('notifications-update', (data) => {
+        if (data.userId === user.email) {
+          setUnreadCount(data.unreadCount);
+        }
+      });
+
+      // Load initial notification count
+      loadNotificationCount();
+
+      return () => {
+        newSocket.close();
+      };
+    }
+  }, [user]);
+
+  // Load total spent and cart count when component mounts
+  useEffect(() => {
+    if (user) {
+      loadTotalSpent();
+      loadCartItemsCount();
+    }
+  }, [user]);
+
+  // Listen for cart changes (when user navigates back to dashboard)
+  useEffect(() => {
+    const handleStorageChange = () => {
+      loadCartItemsCount();
+    };
+
+    // Listen for storage changes
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Also check on focus (when user comes back to tab)
+    window.addEventListener('focus', handleStorageChange);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('focus', handleStorageChange);
+    };
+  }, []);
+
+  const loadNotificationCount = async () => {
+    if (!user) return;
+    
+    try {
+      const response = await fetch(`http://localhost:5001/api/chat/notifications/${user.email}`);
+      const data = await response.json();
+      if (data.success) {
+        setUnreadCount(data.data.unreadCount);
+      }
+    } catch (error) {
+      console.error('Failed to load notification count:', error);
+    }
+  };
+
+  const loadTotalSpent = async () => {
+    if (!user) return;
+    
+    try {
+      setLoadingSpent(true);
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/orders/user/orders`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      
+      const data = await response.json();
+      if (data.success) {
+        // Calculate total spent from all orders
+        const total = data.data.orders.reduce((sum, order) => {
+          return sum + order.totalAmount;
+        }, 0);
+        setTotalSpent(total);
+      }
+    } catch (error) {
+      console.error('Failed to load total spent:', error);
+      setTotalSpent(0);
+    } finally {
+      setLoadingSpent(false);
+    }
+  };
+
+  const loadCartItemsCount = () => {
+    try {
+      setLoadingCart(true);
+      // Get cart items from localStorage
+      const cartItems = JSON.parse(localStorage.getItem('cartItems') || '[]');
+      
+      // Calculate total quantity
+      const totalQuantity = cartItems.reduce((sum, item) => {
+        return sum + (item.selectedQty || 0);
+      }, 0);
+      
+      setCartItemsCount(totalQuantity);
+    } catch (error) {
+      console.error('Failed to load cart items count:', error);
+      setCartItemsCount(0);
+    } finally {
+      setLoadingCart(false);
+    }
+  };
 
   const mainFeatures = [
     { 
@@ -11,7 +132,7 @@ const CustomerDashboard = ({ firstName }) => {
       icon: <FaShip />, 
       description: 'Schedule a boat ride for your next adventure',
       color: 'bg-gradient-to-br from-blue-500 to-teal-500',
-      route: '/boat-rides'
+      route: '/customer'
     },
     { 
       name: 'Book Repair Service', 
@@ -71,6 +192,21 @@ const CustomerDashboard = ({ firstName }) => {
       description: 'View your payment history and invoices',
       color: 'bg-gradient-to-br from-teal-600 to-blue-600',
       route: '/payment-history'
+    },
+    { 
+      name: 'Notifications', 
+      icon: <FaBell />, 
+      description: 'View your notifications and messages',
+      color: 'bg-gradient-to-br from-purple-500 to-pink-500',
+      route: '/notifications',
+      badge: unreadCount > 0 ? unreadCount : null
+    },
+    { 
+      name: 'Order Tracking', 
+      icon: <FaShoppingCart />, 
+      description: 'Track your spare parts orders and status',
+      color: 'bg-gradient-to-br from-purple-500 to-pink-500',
+      route: '/my-orders'
     }
   ];
 
@@ -83,22 +219,41 @@ const CustomerDashboard = ({ firstName }) => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
-          <div className="flex items-center space-x-4">
-            <div className="text-4xl text-blue-600 bg-white p-3 rounded-full shadow-lg">
-              <FaUser />
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">
-                Welcome, {firstName}!
-              </h1>
-              <p className="text-gray-600 mt-1">Manage your boat services, bookings, and purchases</p>
-              <div className="mt-2">
-                <span className="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-gradient-to-r from-blue-100 to-teal-100 text-blue-800 border border-blue-200">
-                  <FaStar className="mr-2" />
-                  Customer Account
-                </span>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <div className="text-4xl text-blue-600 bg-white p-3 rounded-full shadow-lg">
+                <FaUser />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">
+                  Welcome, {firstName}!
+                </h1>
+                <p className="text-gray-600 mt-1">Manage your boat services, bookings, and purchases</p>
               </div>
             </div>
+            
+            {/* Quick Chat Access Button */}
+            <div className="flex items-center space-x-3">
+              <span className="text-gray-600 font-medium">Need Help?</span>
+              <button 
+                onClick={() => navigate('/customer/chat')}
+                className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-6 py-3 rounded-lg shadow-lg hover:from-blue-600 hover:to-cyan-600 transition-all duration-300 transform hover:scale-105 relative flex items-center space-x-2"
+              >
+                <FaHeadset className="text-lg" />
+                <span className="font-semibold">Live Chat</span>
+                {unreadCount > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
+                    {unreadCount}
+                  </span>
+                )}
+              </button>
+            </div>
+          </div>
+          <div className="mt-2">
+            <span className="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-gradient-to-r from-blue-100 to-teal-100 text-blue-800 border border-blue-200">
+              <FaStar className="mr-2" />
+              Customer Account
+            </span>
           </div>
         </div>
 
@@ -121,7 +276,13 @@ const CustomerDashboard = ({ firstName }) => {
                 <FaShoppingCart />
               </div>
               <div>
-                <div className="text-2xl font-bold text-gray-900">5</div>
+                <div className="text-2xl font-bold text-gray-900">
+                  {loadingCart ? (
+                    <div className="animate-pulse bg-gray-200 h-8 w-8 rounded"></div>
+                  ) : (
+                    cartItemsCount
+                  )}
+                </div>
                 <div className="text-gray-600 text-sm">Items in Cart</div>
               </div>
             </div>
@@ -143,8 +304,14 @@ const CustomerDashboard = ({ firstName }) => {
                 <FaCreditCard />
               </div>
               <div>
-                <div className="text-2xl font-bold text-gray-900">Rs. 45,000</div>
-                <div className="text-gray-600 text-sm">Total Spent</div>
+                <div className="text-2xl font-bold text-gray-900">
+                  {loadingSpent ? (
+                    <div className="animate-pulse bg-gray-200 h-8 w-24 rounded"></div>
+                  ) : (
+                    `Rs. ${totalSpent.toLocaleString()}`
+                  )}
+                </div>
+                <div className="text-gray-600 text-sm">Total Spent (Spare Parts)</div>
               </div>
             </div>
           </div>
@@ -191,8 +358,13 @@ const CustomerDashboard = ({ firstName }) => {
                 className="bg-white rounded-2xl shadow-lg p-6 hover:shadow-xl transition-all duration-300 cursor-pointer group transform hover:-translate-y-1"
               >
                 <div className="flex items-center space-x-3 mb-3">
-                  <div className={`text-xl text-white p-3 rounded-xl ${feature.color} group-hover:scale-110 transition-transform duration-300`}>
+                  <div className={`text-xl text-white p-3 rounded-xl ${feature.color} group-hover:scale-110 transition-transform duration-300 relative`}>
                     {feature.icon}
+                    {feature.badge && (
+                      <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
+                        {feature.badge}
+                      </span>
+                    )}
                   </div>
                   <h3 className="text-lg font-semibold text-gray-900 group-hover:text-teal-600 transition-colors">
                     {feature.name}
@@ -204,23 +376,6 @@ const CustomerDashboard = ({ firstName }) => {
           </div>
         </div>
 
-        {/* Support Section */}
-        <div className="bg-gradient-to-r from-blue-500 to-teal-500 rounded-2xl shadow-lg p-6 text-white">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="text-3xl">
-                <FaHeadset />
-              </div>
-              <div>
-                <h3 className="text-xl font-semibold">Need Help?</h3>
-                <p className="text-blue-100">Our customer support team is here to assist you</p>
-              </div>
-            </div>
-            <button className="bg-white text-blue-600 px-6 py-2 rounded-full font-semibold hover:bg-blue-50 transition-colors duration-300">
-              Contact Support
-            </button>
-          </div>
-        </div>
       </div>
     </div>
   );

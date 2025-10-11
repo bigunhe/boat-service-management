@@ -269,7 +269,6 @@ const AdminAppointmentPage = () => {
                 <Select value={filterPayment} onChange={(e) => setFilterPayment(e.target.value)}>
                   <option value="All">All Payments</option>
                   <option value="completed">Paid</option>
-                  <option value="pending">Pending</option>
                 </Select>
               </FormControl>
               
@@ -352,10 +351,10 @@ const AdminAppointmentPage = () => {
                               {appointment.estimatedCost && appointment.estimatedCost > 0 ? `${appointment.estimatedCost.toLocaleString()} LKR` : '2,000 LKR'}
                             </Text>
                             <Badge 
-                              colorScheme={appointment.paymentStatus === 'completed' ? 'green' : 'red'}
+                              colorScheme="green"
                               size="sm"
                             >
-                              {appointment.paymentStatus === 'completed' ? 'Paid' : 'Pending'}
+                              Paid
                             </Badge>
                           </VStack>
                         </Td>

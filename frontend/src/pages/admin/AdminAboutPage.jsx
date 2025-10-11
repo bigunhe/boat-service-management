@@ -135,7 +135,7 @@ const AdminAboutPage = () => {
   const fetchAboutData = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:5000/api/about');
+      const response = await fetch('http://localhost:5001/api/about');
       const result = await response.json();
       
       if (result.success) {
@@ -170,7 +170,7 @@ const AdminAboutPage = () => {
   const saveCompanyInfo = async () => {
     try {
       setSaving(true);
-      const response = await fetch('http://localhost:5000/api/about/company-info', {
+      const response = await fetch('http://localhost:5001/api/about/company-info', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -206,7 +206,7 @@ const AdminAboutPage = () => {
   const saveStatistics = async () => {
     try {
       setSaving(true);
-      const response = await fetch('http://localhost:5000/api/about/statistics', {
+      const response = await fetch('http://localhost:5001/api/about/statistics', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -264,7 +264,7 @@ const AdminAboutPage = () => {
   const deleteTeamMember = async (memberId) => {
     if (window.confirm('Are you sure you want to delete this team member?')) {
       try {
-        const response = await fetch(`http://localhost:5000/api/about/team-members/${memberId}`, {
+        const response = await fetch(`http://localhost:5001/api/about/team-members/${memberId}`, {
           method: 'DELETE',
         });
 
@@ -315,7 +315,7 @@ const AdminAboutPage = () => {
   const deleteTestimonial = async (testimonialId) => {
     if (window.confirm('Are you sure you want to delete this testimonial?')) {
       try {
-        const response = await fetch(`http://localhost:5000/api/about/testimonials/${testimonialId}`, {
+        const response = await fetch(`http://localhost:5001/api/about/testimonials/${testimonialId}`, {
           method: 'DELETE',
         });
 
@@ -366,7 +366,7 @@ const AdminAboutPage = () => {
   const deleteAchievement = async (achievementId) => {
     if (window.confirm('Are you sure you want to delete this achievement?')) {
       try {
-        const response = await fetch(`http://localhost:5000/api/about/achievements/${achievementId}`, {
+        const response = await fetch(`http://localhost:5001/api/about/achievements/${achievementId}`, {
           method: 'DELETE',
         });
 
@@ -397,7 +397,7 @@ const AdminAboutPage = () => {
   const saveCallToAction = async () => {
     try {
       setSaving(true);
-      const response = await fetch('http://localhost:5000/api/about/call-to-action', {
+      const response = await fetch('http://localhost:5001/api/about/call-to-action', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -433,7 +433,7 @@ const AdminAboutPage = () => {
   const saveSettings = async () => {
     try {
       setSaving(true);
-      const response = await fetch('http://localhost:5000/api/about/settings', {
+      const response = await fetch('http://localhost:5001/api/about/settings', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -474,18 +474,18 @@ const AdminAboutPage = () => {
 
       if (editingType === 'team') {
         url = editingItem._id 
-          ? `http://localhost:5000/api/about/team-members/${editingItem._id}`
-          : 'http://localhost:5000/api/about/team-members';
+          ? `http://localhost:5001/api/about/team-members/${editingItem._id}`
+          : 'http://localhost:5001/api/about/team-members';
         method = editingItem._id ? 'PUT' : 'POST';
       } else if (editingType === 'testimonial') {
         url = editingItem._id 
-          ? `http://localhost:5000/api/about/testimonials/${editingItem._id}`
-          : 'http://localhost:5000/api/about/testimonials';
+          ? `http://localhost:5001/api/about/testimonials/${editingItem._id}`
+          : 'http://localhost:5001/api/about/testimonials';
         method = editingItem._id ? 'PUT' : 'POST';
       } else if (editingType === 'achievement') {
         url = editingItem._id 
-          ? `http://localhost:5000/api/about/achievements/${editingItem._id}`
-          : 'http://localhost:5000/api/about/achievements';
+          ? `http://localhost:5001/api/about/achievements/${editingItem._id}`
+          : 'http://localhost:5001/api/about/achievements';
         method = editingItem._id ? 'PUT' : 'POST';
       }
 

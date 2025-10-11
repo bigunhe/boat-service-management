@@ -759,6 +759,8 @@ const searchUsers = async(req, res) =>{
 // Get dashboard statistics
 const getDashboardStats = async (req, res) => {
   try {
+    console.log('📊 Fetching dashboard stats...');
+    
     const totalUsers = await User.countDocuments();
     const totalCustomers = await User.countDocuments({ role: 'customer' });
     const totalEmployees = await User.countDocuments({ role: 'employee' });
@@ -775,20 +777,38 @@ const getDashboardStats = async (req, res) => {
     const Product = (await import('../models/productModel.js')).default;
     const totalProducts = await Product.countDocuments();
     
+    // Get total boat rides
+    const BoatRide = (await import('../models/boatRideModel.js')).default;
+    const totalRides = await BoatRide.countDocuments();
+    
+    // Get total sales visits (appointments)
+    const AppointmentBooking = (await import('../models/appointmentBooking.model.js')).default;
+    const totalSalesVisits = await AppointmentBooking.countDocuments();
+    
+    // Get total spare part sales (orders)
+    const Order = (await import('../models/Order.js')).default;
+    const totalSparePartSales = await Order.countDocuments();
+    
+    const stats = {
+      totalUsers,
+      totalCustomers,
+      totalEmployees,
+      totalRides,
+      totalRepairs,
+      totalRevenue,
+      totalProducts,
+      totalSalesVisits,
+      totalSparePartSales
+    };
+    
+    console.log('📊 Dashboard stats:', stats);
+    
     res.json({
       success: true,
-      data: {
-        totalUsers,
-        totalCustomers,
-        totalEmployees,
-        totalRides: 0, // Placeholder for now
-        totalRepairs,
-        totalRevenue,
-        totalProducts
-      }
+      data: stats
     });
   } catch (error) {
-    console.error('Error getting dashboard stats:', error);
+    console.error('❌ Error getting dashboard stats:', error);
     res.status(500).json({ success: false, message: 'Failed to get dashboard stats' });
   }
 };

@@ -154,31 +154,6 @@ const BoatManagement = () => {
             <HStack spacing={4}>
               <Button
                 as={Link}
-                to="/admin/chat"
-                colorScheme="blue"
-                size="lg"
-                leftIcon={<Icon as={FaComments} />}
-                bgGradient="linear(to-r, blue.500, cyan.400)"
-                border="2px solid"
-                borderColor="lightblue.300"
-                _hover={{
-                  bgGradient: "linear(to-r, blue.600, cyan.500)",
-                  borderColor: "lightblue.400",
-                  transform: "translateY(-2px)",
-                  shadow: "lg",
-                  boxShadow: "0 0 20px rgba(135, 206, 250, 0.4)"
-                }}
-                transition="all 0.3s ease"
-                px={8}
-                py={6}
-                fontSize="lg"
-                fontWeight="bold"
-              >
-                Live Chat Dashboard
-              </Button>
-              
-              <Button
-                as={Link}
                 to="/admin/analytics"
                 colorScheme="green"
                 size="lg"

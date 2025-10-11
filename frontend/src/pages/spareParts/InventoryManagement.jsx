@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import "./InventoryManagement.css";
 
 const InventoryManagement = () => {
   const [products, setProducts] = useState([]);
@@ -93,8 +94,18 @@ const InventoryManagement = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Inventory Management</h1>
-          <p className="text-gray-600">Manage boat spare parts inventory</p>
+          <div className="flex justify-between items-start mb-4">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">Inventory Management</h1>
+              <p className="text-gray-600">Manage boat spare parts inventory</p>
+            </div>
+            <Link 
+              to="/employee/orders" 
+              className="order-management-link"
+            >
+              📦 Order Management
+            </Link>
+          </div>
         </div>
 
         {/* Low Stock Alert */}
@@ -166,7 +177,7 @@ const InventoryManagement = () => {
                 Create Product
               </button>
             </Link>
-          </div>
+          </div>live 
         </div>
 
         {/* Products Grid */}

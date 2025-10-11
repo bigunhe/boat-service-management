@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import remove_icon from "../../assets/cart_cross_icon.png";
 import "./CartItems.css";
 
 const CartItems = () => {
-  
+  const navigate = useNavigate();
   const [cartItems, setCartItems] = useState([]);
 
   // update cart throug localstorage
@@ -36,6 +36,14 @@ const CartItems = () => {
   };
 
   const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.selectedQty, 0);
+
+  const handleProceedToCheckout = () => {
+    if (cartItems.length === 0) {
+      alert('Your cart is empty. Please add some items first.');
+      return;
+    }
+    navigate('/checkout');
+  };
 
   return (
     <div className="cartitems">
@@ -102,7 +110,7 @@ const CartItems = () => {
             <h3>Rs. {subtotal}</h3>
           </div>
           <hr/>
-          <button>PROCEED TO CHECKOUT</button>
+          <button onClick={handleProceedToCheckout}>PROCEED TO CHECKOUT</button>
         </div>
       </div>
     </div>

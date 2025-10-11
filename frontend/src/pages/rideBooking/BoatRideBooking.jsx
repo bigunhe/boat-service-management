@@ -4,10 +4,14 @@ import { useAuth } from '../../context/AuthContext';
 import { FaArrowLeft, FaArrowRight, FaCalendarAlt, FaClock, FaUsers, FaShip, FaMapMarkerAlt, FaDollarSign, FaCheck, FaSpinner } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import { createBoatRide, checkAvailability, getPricing } from './rideApi';
+import { useRealTimeValidation } from '../../utils/validation';
 
 const BoatRideBooking = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  
+  // Debug: Check if user is logged in
+  console.log('Current user:', user);
   
   // Step management
   const [currentStep, setCurrentStep] = useState(1);
@@ -33,18 +37,62 @@ const BoatRideBooking = () => {
     
     // Step 4: Additional Information
     specialRequests: '',
-    emergencyContact: ''
+    emergencyContact: '',
+    
+    // Customer info (pre-filled from auth)
+    customerName: '',
+    customerEmail: '',
+    customerPhone: ''
   });
   
   // UI state
-  const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingPricing, setIsLoadingPricing] = useState(false);
   const [calendlyScheduled, setCalendlyScheduled] = useState(false);
   
-  // Boat types and journey types
+  // Real-time validation
+  const validationRules = {
+    passengers: { type: 'number', min: 1, max: 100 },
+    emergencyContact: { type: 'phone' },
+    specialRequests: { type: 'textLength', min: 0, max: 500, fieldName: 'Special requests' }
+  };
+  
+  const { errors, validateField, clearError } = useRealTimeValidation(validationRules);
+  
+  // Pre-fill customer info from auth
+  useEffect(() => {
+    console.log('User object:', user);
+    if (user && user.name) {
+      console.log('Setting customer data:', {
+        name: user.name,
+        email: user.email,
+        phone: user.phone
+      });
+      setFormData(prev => ({
+        ...prev,
+        customerName: user.name || '',
+        customerEmail: user.email || '',
+        customerPhone: user.phone || ''
+      }));
+    } else {
+      console.log('No user or user.name found, user:', user);
+    }
+  }, [user]);
+  
+  // Get current boat capacity
+  const getCurrentBoatCapacity = () => {
+    const selectedBoat = boatTypes.find(boat => boat.type === formData.boatType);
+    return selectedBoat ? selectedBoat.capacity : 100; // Default fallback
+  };
+  
+  // Boat types with capacity limits
   const boatTypes = [
-    'Speedboat', 'Yacht', 'Catamaran', 'Fishing Boat', 'Dinghy', 'Jet Ski'
+    { type: 'Speedboat', capacity: 8 },
+    { type: 'Yacht', capacity: 20 },
+    { type: 'Catamaran', capacity: 12 },
+    { type: 'Fishing Boat', capacity: 6 },
+    { type: 'Dinghy', capacity: 4 },
+    { type: 'Jet Ski', capacity: 2 }
   ];
   
   const journeyTypes = [
@@ -88,13 +136,9 @@ const BoatRideBooking = () => {
       [field]: value
     }));
     
-    // Clear error when user starts typing
-    if (errors[field]) {
-      setErrors(prev => ({
-        ...prev,
-        [field]: ''
-      }));
-    }
+    // Clear error and validate field
+    clearError(field);
+    validateField(field, value);
   };
   
   // Validate current step
@@ -128,7 +172,7 @@ const BoatRideBooking = () => {
         break;
     }
     
-    setErrors(newErrors);
+    // Note: Errors are now handled by useRealTimeValidation hook
     return Object.keys(newErrors).length === 0;
   };
   
@@ -225,7 +269,7 @@ const BoatRideBooking = () => {
     setCurrentStep(prev => Math.max(prev - 1, 1));
   };
   
-  // Submit booking (placeholder for payment)
+  // Submit booking
   const handleSubmit = async () => {
     if (!validateStep(currentStep)) {
       return;
@@ -234,22 +278,27 @@ const BoatRideBooking = () => {
     try {
       setIsSubmitting(true);
       
-      // For now, just show a placeholder message
-      toast.success('Payment processing will be implemented soon!');
+      // Create the booking
+      const bookingData = {
+        ...formData,
+        customerName: formData.customerName || user?.name,
+        customerEmail: formData.customerEmail || user?.email,
+        customerPhone: formData.customerPhone || user?.phone,
+        status: 'pending',
+        bookingDate: new Date().toISOString()
+      };
       
-      // TODO: Implement payment processing
-      // After successful payment, create the booking
-      // const response = await createBoatRide({
-      //   ...formData,
-      //   customerName: user.name,
-      //   customerEmail: user.email,
-      //   customerPhone: user.phone
-      // });
+      const response = await createBoatRide(bookingData);
       
-      // navigate(`/ride-confirmation/${response.data.booking._id}`);
+      if (response.success) {
+        toast.success('Booking created successfully!');
+        navigate(`/ride-confirmation/${response.data.booking._id}`);
+      } else {
+        throw new Error(response.message || 'Failed to create booking');
+      }
     } catch (error) {
-      console.error('Error processing payment:', error);
-      toast.error(error.message || 'Failed to process payment. Please try again.');
+      console.error('Error creating booking:', error);
+      toast.error(error.message || 'Failed to create booking. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -283,8 +332,10 @@ const BoatRideBooking = () => {
                   }`}
                 >
                   <option value="">Select boat type</option>
-                  {boatTypes.map(type => (
-                    <option key={type} value={type}>{type}</option>
+                  {boatTypes.map(boat => (
+                    <option key={boat.type} value={boat.type}>
+                      {boat.type} (Max {boat.capacity} passengers)
+                    </option>
                   ))}
                 </select>
                 {errors.boatType && <p className="text-red-500 text-sm mt-1">{errors.boatType}</p>}
@@ -317,17 +368,27 @@ const BoatRideBooking = () => {
                   <FaUsers className="inline mr-2" />
                   Number of Passengers *
                 </label>
-                <input
-                  type="number"
-                  min="1"
-                  max="50"
+                <select
                   value={formData.passengers}
                   onChange={(e) => updateFormData('passengers', parseInt(e.target.value))}
                   className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 ${
                     errors.passengers ? 'border-red-500' : 'border-gray-300'
                   }`}
-                />
+                  disabled={!formData.boatType}
+                >
+                  <option value="">Select number of passengers</option>
+                  {Array.from({ length: getCurrentBoatCapacity() }, (_, i) => i + 1).map(num => (
+                    <option key={num} value={num}>
+                      {num} {num === 1 ? 'passenger' : 'passengers'}
+                    </option>
+                  ))}
+                </select>
                 {errors.passengers && <p className="text-red-500 text-sm mt-1">{errors.passengers}</p>}
+                {formData.boatType && (
+                  <p className="text-sm text-gray-500 mt-1">
+                    Maximum {getCurrentBoatCapacity()} passengers for {formData.boatType}
+                  </p>
+                )}
               </div>
               
               <div>
@@ -455,6 +516,36 @@ const BoatRideBooking = () => {
                     <strong>Note:</strong> Payment must be completed online using Stripe before your ride can be confirmed. 
                     You will be redirected to our secure payment gateway to complete the transaction.
                   </p>
+                </div>
+              </div>
+            </div>
+            
+            {/* Customer Information */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Customer Name
+                </label>
+                <div className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-700">
+                  {formData.customerName || 'Loading...'}
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Email Address
+                </label>
+                <div className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-700">
+                  {formData.customerEmail || 'Loading...'}
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Phone Number
+                </label>
+                <div className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-700">
+                  {formData.customerPhone || 'Loading...'}
                 </div>
               </div>
             </div>
@@ -649,7 +740,7 @@ const BoatRideBooking = () => {
                 ) : (
                   <>
                     <FaCheck className="mr-2" />
-                    Confirm Booking
+                    Book Now
                   </>
                 )}
               </button>

@@ -50,6 +50,28 @@ const ProductDetailsPage = () => {
     alert(`${selectedQty} x ${product.name} added to your cart.`);
   };
 
+  const handleBuyNow = () => {
+    if (!product) return;
+
+    if (selectedQty <= 0 || selectedQty > product.quantity) {
+      alert(`Please select a quantity between 1 and ${product.quantity}`);
+      return;
+    }
+
+    // Create a temporary cart with just this product for Buy Now
+    const buyNowItem = { ...product, selectedQty };
+    const tempCart = [buyNowItem];
+    
+    // Save temporary cart to localStorage
+    localStorage.setItem("cart", JSON.stringify(tempCart));
+    
+    // Trigger storage event so Navbar updates instantly
+    window.dispatchEvent(new Event("storage"));
+    
+    // Navigate to checkout page
+    navigate('/checkout');
+  };
+
   const handleSearchWeb = () => {
     if (!product || !product.partNumber) return;
     const query = encodeURIComponent(product.partNumber);
@@ -180,11 +202,11 @@ const ProductDetailsPage = () => {
                     {product.quantity > 0 ? "Add to Cart" : "Out of Stock"}
                   </button>
                   <button
-                    onClick={() => navigate('/404')}
+                    onClick={handleBuyNow}
                     className="flex-1 bg-green-600 text-white py-3 px-6 rounded-md hover:bg-green-700 transition-colors duration-300"
                     disabled={product.quantity === 0}
                   >
-                    Buy Now (Coming Soon)
+                    {product.quantity > 0 ? "Buy Now" : "Out of Stock"}
                   </button>
                 </div>
               </div>
