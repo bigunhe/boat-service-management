@@ -32,7 +32,7 @@ const AdminAnalytics = () => {
       setLoading(true);
       console.log('📊 Loading analytics data...');
       
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/analytics/dashboard?period=${selectedPeriod}`);
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/analytics/dashboard?period=${selectedPeriod}`);
       const data = await response.json();
       
       if (data.success) {

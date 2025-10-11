@@ -14,7 +14,7 @@ export const useReviewsStore = create((set, get) => ({
 
   fetchReviews: async (boatId, userEmail = null, isAdmin = false) => {
     try {
-      let url = boatId ? `${process.env.REACT_APP_API_URL}/reviews?boatId=${boatId}` : `${process.env.REACT_APP_API_URL}/reviews`;
+      let url = boatId ? `${process.env.REACT_APP_API_URL}/api/reviews?boatId=${boatId}` : `${process.env.REACT_APP_API_URL}/api/reviews`;
       
       if (userEmail) {
         url += `&userEmail=${encodeURIComponent(userEmail)}`;
@@ -48,7 +48,7 @@ export const useReviewsStore = create((set, get) => ({
 
   addReview: async (review) => {
     try {
-      const res = await fetch(`${process.env.REACT_APP_API_URL}/reviews`, {
+      const res = await fetch(`${process.env.REACT_APP_API_URL}/api/reviews`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(review),
@@ -64,7 +64,7 @@ export const useReviewsStore = create((set, get) => ({
 
   deleteReview: async (id) => {
     try {
-      const res = await fetch(`${process.env.REACT_APP_API_URL}/reviews/${id}`, { method: "DELETE" });
+      const res = await fetch(`${process.env.REACT_APP_API_URL}/api/reviews/${id}`, { method: "DELETE" });
       const data = await res.json();
       if (!data.success) return { success: false, message: data.message };
       set((state) => ({ reviews: state.reviews.filter((r) => r._id !== id) }));

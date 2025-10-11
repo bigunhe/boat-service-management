@@ -51,7 +51,7 @@ const RepairManagementDetail = () => {
       setLoading(true);
       const token = localStorage.getItem('token');
       
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/boat-repairs/${id}`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/boat-repairs/${id}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -108,7 +108,7 @@ const RepairManagementDetail = () => {
     try {
       const token = localStorage.getItem('token');
       
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/repair-costs/cost-options/${serviceType}`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/repair-costs/cost-options/${serviceType}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'

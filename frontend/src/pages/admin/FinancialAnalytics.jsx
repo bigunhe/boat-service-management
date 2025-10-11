@@ -86,13 +86,13 @@ const FinancialAnalytics = () => {
         revenueByDistrictRes,
         quickStatsRes
       ] = await Promise.all([
-        fetch(`${process.env.REACT_APP_API_URL}/analytics/financial/revenue-by-service`, { headers }),
-        fetch(`${process.env.REACT_APP_API_URL}/analytics/financial/revenue-trends?period=${selectedPeriod}`, { headers }),
-        fetch(`${process.env.REACT_APP_API_URL}/analytics/financial/customer-spending`, { headers }),
-        fetch(`${process.env.REACT_APP_API_URL}/analytics/financial/service-performance`, { headers }),
-        fetch(`${process.env.REACT_APP_API_URL}/analytics/financial/inventory-vs-sales`, { headers }),
-        fetch(`${process.env.REACT_APP_API_URL}/analytics/financial/revenue-distribution-district`, { headers }),
-        fetch(`${process.env.REACT_APP_API_URL}/analytics/financial/quick-stats`, { headers })
+        fetch(`${process.env.REACT_APP_API_URL}/api/analytics/financial/revenue-by-service`, { headers }),
+        fetch(`${process.env.REACT_APP_API_URL}/api/analytics/financial/revenue-trends?period=${selectedPeriod}`, { headers }),
+        fetch(`${process.env.REACT_APP_API_URL}/api/analytics/financial/customer-spending`, { headers }),
+        fetch(`${process.env.REACT_APP_API_URL}/api/analytics/financial/service-performance`, { headers }),
+        fetch(`${process.env.REACT_APP_API_URL}/api/analytics/financial/inventory-vs-sales`, { headers }),
+        fetch(`${process.env.REACT_APP_API_URL}/api/analytics/financial/revenue-distribution-district`, { headers }),
+        fetch(`${process.env.REACT_APP_API_URL}/api/analytics/financial/quick-stats`, { headers })
       ]);
 
       const [
@@ -342,7 +342,7 @@ const FinancialAnalytics = () => {
       };
       const baseUrl = process.env.REACT_APP_API_URL || 'http://localhost:5001';
 
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/analytics/financial/revenue-trends?period=${selectedPeriod}`, { headers });
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/analytics/financial/revenue-trends?period=${selectedPeriod}`, { headers });
       const data = await response.json();
       
       if (data.success) {

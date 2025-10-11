@@ -45,6 +45,7 @@ import { useAuth } from '../../context/AuthContext';
 import io from 'socket.io-client';
 
 const CustomerChat = () => {
+  console.log('🚀 CustomerChat component loaded');
   const navigate = useNavigate();
   const { user } = useAuth();
   const [socket, setSocket] = useState(null);
@@ -150,8 +151,12 @@ const CustomerChat = () => {
 
   // Initialize chat when component mounts
   useEffect(() => {
+    console.log('🔄 Customer useEffect triggered - user:', user, 'isInitialized:', isInitialized);
     if (user && !isInitialized) {
+      console.log('✅ Customer conditions met, calling initializeChat');
       initializeChat();
+    } else {
+      console.log('❌ Customer conditions not met - user:', !!user, 'isInitialized:', isInitialized);
     }
   }, [user, isInitialized]);
 
@@ -166,7 +171,7 @@ const CustomerChat = () => {
     if (!user || !chatId) return;
     
     try {
-      await fetch(`${process.env.REACT_APP_API_URL}/chat/notifications/${user.email}/read`, {
+      await fetch(`${process.env.REACT_APP_API_URL}/api/chat/notifications/${user.email}/read`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -185,6 +190,7 @@ const CustomerChat = () => {
 
   // Initialize chat with user data
   const initializeChat = async () => {
+    console.log('🔧 Customer initializeChat called');
     if (!user) {
       toast({
         title: 'Please login first',
@@ -199,7 +205,7 @@ const CustomerChat = () => {
 
     setIsLoading(true);
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/chat/chat/create`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/chat/chat/create`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -244,14 +250,20 @@ const CustomerChat = () => {
   // Load existing messages
   const loadMessages = async (chatId) => {
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/chat/chat/${chatId}/messages`);
+      console.log('🔍 Customer loading messages for chatId:', chatId);
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/chat/chat/${chatId}/messages`);
+      console.log('📡 Customer messages response status:', response.status);
       const data = await response.json();
+      console.log('📡 Customer messages response data:', data);
       if (data.success) {
+        console.log('✅ Customer loaded messages:', data.data.length, 'messages');
         setMessages(data.data);
         scrollToBottom();
+      } else {
+        console.error('❌ Customer messages API returned error:', data.message);
       }
     } catch (error) {
-      console.error('Failed to load messages:', error);
+      console.error('❌ Customer failed to load messages:', error);
     }
   };
 
@@ -265,7 +277,7 @@ const CustomerChat = () => {
     try {
       console.log('📤 Customer sending message:', { chatId, message: messageText });
       
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/chat/chat/${chatId}/message`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/chat/chat/${chatId}/message`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

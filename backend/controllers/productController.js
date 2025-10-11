@@ -15,10 +15,10 @@ export const createProduct = async (req, res) => {
 	const product = req.body; // user will send this data
 
 	// Validate required fields
-	if (!product.name || !product.price || !product.partNumber || !product.company || !product.quantity || !product.image) {
+	if (!product.name || !product.price || !product.partNumber || !product.company || !product.quantity) {
 		return res.status(400).json({
 			success: false,
-			message: "Please provide name, price, partNumber, company, quantity, and image",
+			message: "Please provide name, price, partNumber, and company",
 		});
 	}
 

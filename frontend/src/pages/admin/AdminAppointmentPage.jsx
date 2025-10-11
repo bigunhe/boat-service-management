@@ -86,7 +86,7 @@ const AdminAppointmentPage = () => {
   // Fetch appointments
   const fetchAppointments = async () => {
     try {
-      let url = `${process.env.REACT_APP_API_URL}/appointments`;
+      let url = `${process.env.REACT_APP_API_URL}/api/appointments`;
       const params = new URLSearchParams();
       
       if (filterStatus !== 'All') params.append('status', filterStatus);
@@ -158,7 +158,7 @@ const AdminAppointmentPage = () => {
   const deleteAppointment = async (id) => {
     if (window.confirm('Are you sure you want to delete this appointment?')) {
       try {
-        const response = await fetch(`${process.env.REACT_APP_API_URL}/appointments/${id}`, {
+        const response = await fetch(`${process.env.REACT_APP_API_URL}/api/appointments/${id}`, {
           method: 'DELETE',
         });
 

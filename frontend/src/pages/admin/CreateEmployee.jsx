@@ -391,7 +391,7 @@ const CreateEmployee = () => {
 
       console.log('Sending data:', requestData);
 
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/users/auth/register`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/users/auth/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -135,7 +135,7 @@ const AdminAboutPage = () => {
   const fetchAboutData = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/about`);
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/about`);
       const result = await response.json();
       
       if (result.success) {
@@ -264,7 +264,7 @@ const AdminAboutPage = () => {
   const deleteTeamMember = async (memberId) => {
     if (window.confirm('Are you sure you want to delete this team member?')) {
       try {
-        const response = await fetch(`${process.env.REACT_APP_API_URL}/about/team-members/${memberId}`, {
+        const response = await fetch(`${process.env.REACT_APP_API_URL}/api/about/team-members/${memberId}`, {
           method: 'DELETE',
         });
 
@@ -315,7 +315,7 @@ const AdminAboutPage = () => {
   const deleteTestimonial = async (testimonialId) => {
     if (window.confirm('Are you sure you want to delete this testimonial?')) {
       try {
-        const response = await fetch(`${process.env.REACT_APP_API_URL}/about/testimonials/${testimonialId}`, {
+        const response = await fetch(`${process.env.REACT_APP_API_URL}/api/about/testimonials/${testimonialId}`, {
           method: 'DELETE',
         });
 
@@ -366,7 +366,7 @@ const AdminAboutPage = () => {
   const deleteAchievement = async (achievementId) => {
     if (window.confirm('Are you sure you want to delete this achievement?')) {
       try {
-        const response = await fetch(`${process.env.REACT_APP_API_URL}/about/achievements/${achievementId}`, {
+        const response = await fetch(`${process.env.REACT_APP_API_URL}/api/about/achievements/${achievementId}`, {
           method: 'DELETE',
         });
 
@@ -474,18 +474,18 @@ const AdminAboutPage = () => {
 
       if (editingType === 'team') {
         url = editingItem._id 
-          ? `${process.env.REACT_APP_API_URL}/about/team-members/${editingItem._id}`
-          : `${process.env.REACT_APP_API_URL}/about/team-members`;
+          ? `${process.env.REACT_APP_API_URL}/api/about/team-members/${editingItem._id}`
+          : `${process.env.REACT_APP_API_URL}/api/about/team-members`;
         method = editingItem._id ? 'PUT' : 'POST';
       } else if (editingType === 'testimonial') {
         url = editingItem._id 
-          ? `${process.env.REACT_APP_API_URL}/about/testimonials/${editingItem._id}`
-          : `${process.env.REACT_APP_API_URL}/about/testimonials`;
+          ? `${process.env.REACT_APP_API_URL}/api/about/testimonials/${editingItem._id}`
+          : `${process.env.REACT_APP_API_URL}/api/about/testimonials`;
         method = editingItem._id ? 'PUT' : 'POST';
       } else if (editingType === 'achievement') {
         url = editingItem._id 
-          ? `${process.env.REACT_APP_API_URL}/about/achievements/${editingItem._id}`
-          : `${process.env.REACT_APP_API_URL}/about/achievements`;
+          ? `${process.env.REACT_APP_API_URL}/api/about/achievements/${editingItem._id}`
+          : `${process.env.REACT_APP_API_URL}/api/about/achievements`;
         method = editingItem._id ? 'PUT' : 'POST';
       }
 

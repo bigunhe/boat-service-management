@@ -63,9 +63,9 @@ const UserAnalytics = () => {
         userDistributionRes,
         geographicDistributionRes
       ] = await Promise.all([
-        fetch(`${process.env.REACT_APP_API_URL}/analytics/users/registration-trends?period=${selectedPeriod}`, { headers }),
-        fetch(`${process.env.REACT_APP_API_URL}/analytics/users/distribution`, { headers }),
-        fetch(`${process.env.REACT_APP_API_URL}/analytics/users/geographic`, { headers })
+        fetch(`${process.env.REACT_APP_API_URL}/api/analytics/users/registration-trends?period=${selectedPeriod}`, { headers }),
+        fetch(`${process.env.REACT_APP_API_URL}/api/analytics/users/distribution`, { headers }),
+        fetch(`${process.env.REACT_APP_API_URL}/api/analytics/users/geographic`, { headers })
       ]);
 
       const [

@@ -76,10 +76,10 @@ const OperationalAnalytics = () => {
         efficiencyRes,
         performanceRes
       ] = await Promise.all([
-        fetch(`${process.env.REACT_APP_API_URL}/analytics/operational/service-completion?period=${completionPeriod}`, { headers }),
-        fetch(`${process.env.REACT_APP_API_URL}/analytics/operational/cross-service-usage`, { headers }),
-        fetch(`${process.env.REACT_APP_API_URL}/analytics/operational/efficiency`, { headers }),
-        fetch(`${process.env.REACT_APP_API_URL}/analytics/operational/performance`, { headers })
+        fetch(`${process.env.REACT_APP_API_URL}/api/analytics/operational/service-completion?period=${completionPeriod}`, { headers }),
+        fetch(`${process.env.REACT_APP_API_URL}/api/analytics/operational/cross-service-usage`, { headers }),
+        fetch(`${process.env.REACT_APP_API_URL}/api/analytics/operational/efficiency`, { headers }),
+        fetch(`${process.env.REACT_APP_API_URL}/api/analytics/operational/performance`, { headers })
       ]);
 
       const [

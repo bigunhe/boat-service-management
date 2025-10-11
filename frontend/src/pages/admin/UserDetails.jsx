@@ -53,7 +53,7 @@ const UserDetails = () => {
       setLoading(true);
       const token = localStorage.getItem('token');
       
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/users/${id}`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/users/${id}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -394,7 +394,7 @@ const UserDetails = () => {
         };
       }
 
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/users/${id}`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/users/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -423,7 +423,7 @@ const UserDetails = () => {
   const handleDelete = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/users/${id}`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/users/${id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`

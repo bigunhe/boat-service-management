@@ -59,11 +59,11 @@ const BoatRidesAnalytics = () => {
         journeyTypePopularityRes,
         capacityUtilizationRes
       ] = await Promise.all([
-        fetch(`${process.env.REACT_APP_API_URL}/analytics/boat-rides/trends?period=30d`, { headers }),
-        fetch(`${process.env.REACT_APP_API_URL}/analytics/boat-rides/status-distribution`, { headers }),
-        fetch(`${process.env.REACT_APP_API_URL}/analytics/boat-rides/boat-type-popularity`, { headers }),
-        fetch(`${process.env.REACT_APP_API_URL}/analytics/boat-rides/journey-type-popularity`, { headers }),
-        fetch(`${process.env.REACT_APP_API_URL}/analytics/boat-rides/passenger-capacity`, { headers })
+        fetch(`${process.env.REACT_APP_API_URL}/api/analytics/boat-rides/trends?period=30d`, { headers }),
+        fetch(`${process.env.REACT_APP_API_URL}/api/analytics/boat-rides/status-distribution`, { headers }),
+        fetch(`${process.env.REACT_APP_API_URL}/api/analytics/boat-rides/boat-type-popularity`, { headers }),
+        fetch(`${process.env.REACT_APP_API_URL}/api/analytics/boat-rides/journey-type-popularity`, { headers }),
+        fetch(`${process.env.REACT_APP_API_URL}/api/analytics/boat-rides/passenger-capacity`, { headers })
       ]);
 
       const [

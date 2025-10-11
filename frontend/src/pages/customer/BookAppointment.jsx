@@ -116,7 +116,7 @@ const UserAppointmentsPage = () => {
     setLoadingSlots(true);
     try {
 
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/appointments/available-slots/${date}`);
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/appointments/available-slots/${date}`);
       
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);

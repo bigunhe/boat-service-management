@@ -71,12 +71,12 @@ const InventoryAnalytics = () => {
         timeRes,
         usageRes
       ] = await Promise.all([
-        fetch(`${process.env.REACT_APP_API_URL}/analytics/spare-parts/inventory-overview`, { headers }),
-        fetch(`${process.env.REACT_APP_API_URL}/analytics/spare-parts/category-analytics`, { headers }),
-        fetch(`${process.env.REACT_APP_API_URL}/analytics/spare-parts/company-analytics`, { headers }),
-        fetch(`${process.env.REACT_APP_API_URL}/analytics/spare-parts/stock-alerts`, { headers }),
-        fetch(`${process.env.REACT_APP_API_URL}/analytics/spare-parts/time-analytics?period=${selectedPeriod}`, { headers }),
-        fetch(`${process.env.REACT_APP_API_URL}/analytics/spare-parts/usage-analytics?period=${selectedPeriod}`, { headers })
+        fetch(`${process.env.REACT_APP_API_URL}/api/analytics/spare-parts/inventory-overview`, { headers }),
+        fetch(`${process.env.REACT_APP_API_URL}/api/analytics/spare-parts/category-analytics`, { headers }),
+        fetch(`${process.env.REACT_APP_API_URL}/api/analytics/spare-parts/company-analytics`, { headers }),
+        fetch(`${process.env.REACT_APP_API_URL}/api/analytics/spare-parts/stock-alerts`, { headers }),
+        fetch(`${process.env.REACT_APP_API_URL}/api/analytics/spare-parts/time-analytics?period=${selectedPeriod}`, { headers }),
+        fetch(`${process.env.REACT_APP_API_URL}/api/analytics/spare-parts/usage-analytics?period=${selectedPeriod}`, { headers })
       ]);
 
       const [

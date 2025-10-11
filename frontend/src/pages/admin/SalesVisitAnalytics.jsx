@@ -71,12 +71,12 @@ const SalesVisitAnalytics = () => {
         conversionRes,
         statusRes
       ] = await Promise.all([
-        fetch(`${process.env.REACT_APP_API_URL}/analytics/sales-visits/trends?period=${selectedPeriod}`, { headers }),
-        fetch(`${process.env.REACT_APP_API_URL}/analytics/sales-visits/category-distribution`, { headers }),
-        fetch(`${process.env.REACT_APP_API_URL}/analytics/sales-visits/geographic-distribution`, { headers }),
-        fetch(`${process.env.REACT_APP_API_URL}/analytics/sales-visits/peak-hours`, { headers }),
-        fetch(`${process.env.REACT_APP_API_URL}/analytics/sales-visits/conversion-rates`, { headers }),
-        fetch(`${process.env.REACT_APP_API_URL}/analytics/sales-visits/status-analytics`, { headers })
+        fetch(`${process.env.REACT_APP_API_URL}/api/analytics/sales-visits/trends?period=${selectedPeriod}`, { headers }),
+        fetch(`${process.env.REACT_APP_API_URL}/api/analytics/sales-visits/category-distribution`, { headers }),
+        fetch(`${process.env.REACT_APP_API_URL}/api/analytics/sales-visits/geographic-distribution`, { headers }),
+        fetch(`${process.env.REACT_APP_API_URL}/api/analytics/sales-visits/peak-hours`, { headers }),
+        fetch(`${process.env.REACT_APP_API_URL}/api/analytics/sales-visits/conversion-rates`, { headers }),
+        fetch(`${process.env.REACT_APP_API_URL}/api/analytics/sales-visits/status-analytics`, { headers })
       ]);
 
       const [

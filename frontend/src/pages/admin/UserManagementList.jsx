@@ -59,7 +59,7 @@ const UserManagementList = () => {
       const role = activeTab === 'customers' ? 'customer' : 'employee';
       
       const response = await fetch(
-        `${process.env.REACT_APP_API_URL}/users/search?role=${role}&page=${currentPage}&limit=${itemsPerPage}&search=${searchTerm}&sortBy=${sortBy}&sortOrder=${sortOrder}`,
+        `${process.env.REACT_APP_API_URL}/api/users/search?role=${role}&page=${currentPage}&limit=${itemsPerPage}&search=${searchTerm}&sortBy=${sortBy}&sortOrder=${sortOrder}`,
         {
           headers: {
             'Authorization': `Bearer ${token}`
@@ -115,7 +115,7 @@ const UserManagementList = () => {
   const handleDeleteUser = async (userId) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/users/${userId}`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/users/${userId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`

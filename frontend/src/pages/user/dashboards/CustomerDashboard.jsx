@@ -69,7 +69,7 @@ const CustomerDashboard = ({ firstName }) => {
     if (!user) return;
     
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/chat/notifications/${user.email}`);
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/chat/notifications/${user.email}`);
       const data = await response.json();
       if (data.success) {
         setUnreadCount(data.data.unreadCount);

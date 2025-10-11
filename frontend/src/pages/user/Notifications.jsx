@@ -22,7 +22,7 @@ const Notifications = () => {
       setLoading(true);
       const token = localStorage.getItem('token');
       
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/notifications`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/notifications`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'

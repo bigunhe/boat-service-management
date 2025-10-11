@@ -56,10 +56,10 @@ const RepairAnalytics = () => {
         statusBreakdownRes,
         technicianPerformanceRes
       ] = await Promise.all([
-        fetch(`${process.env.REACT_APP_API_URL}/analytics/services/by-type`, { headers }),
-        fetch(`${process.env.REACT_APP_API_URL}/analytics/services/monthly-volume`, { headers }),
-        fetch(`${process.env.REACT_APP_API_URL}/analytics/services/status-breakdown`, { headers }),
-        fetch(`${process.env.REACT_APP_API_URL}/analytics/services/technician-performance`, { headers })
+        fetch(`${process.env.REACT_APP_API_URL}/api/analytics/services/by-type`, { headers }),
+        fetch(`${process.env.REACT_APP_API_URL}/api/analytics/services/monthly-volume`, { headers }),
+        fetch(`${process.env.REACT_APP_API_URL}/api/analytics/services/status-breakdown`, { headers }),
+        fetch(`${process.env.REACT_APP_API_URL}/api/analytics/services/technician-performance`, { headers })
       ]);
 
       const [

@@ -51,7 +51,7 @@ const RepairManagementList = () => {
         queryParams.append('status', filters.status);
       }
 
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/boat-repairs/employee/all?${queryParams}`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/boat-repairs/employee/all?${queryParams}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'

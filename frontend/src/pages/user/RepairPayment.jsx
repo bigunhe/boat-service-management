@@ -26,7 +26,7 @@ const RepairPayment = () => {
       setLoading(true);
       const token = localStorage.getItem('token');
       
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/boat-repairs/${id}`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/boat-repairs/${id}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'

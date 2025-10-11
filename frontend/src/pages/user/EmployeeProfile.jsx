@@ -230,7 +230,7 @@ const EmployeeProfile = () => {
         return;
       }
 
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/users/${user._id}`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/users/${user._id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
