@@ -75,11 +75,11 @@ const CustomerAnalytics = () => {
         retentionRes,
         segmentationRes
       ] = await Promise.all([
-        fetch(`${baseUrl}/api/analytics/customer/purchase-frequency?period=${frequencyPeriod}`, { headers }),
-        fetch(`${baseUrl}/api/analytics/customer/service-preferences`, { headers }),
-        fetch(`${baseUrl}/api/analytics/customer/lifetime-value`, { headers }),
-        fetch(`${baseUrl}/api/analytics/customer/retention-analysis?period=${retentionPeriod}`, { headers }),
-        fetch(`${baseUrl}/api/analytics/customer/segmentation`, { headers })
+        fetch(`${process.env.REACT_APP_API_URL}/analytics/customer/purchase-frequency?period=${frequencyPeriod}`, { headers }),
+        fetch(`${process.env.REACT_APP_API_URL}/analytics/customer/service-preferences`, { headers }),
+        fetch(`${process.env.REACT_APP_API_URL}/analytics/customer/lifetime-value`, { headers }),
+        fetch(`${process.env.REACT_APP_API_URL}/analytics/customer/retention-analysis?period=${retentionPeriod}`, { headers }),
+        fetch(`${process.env.REACT_APP_API_URL}/analytics/customer/segmentation`, { headers })
       ]);
 
       const [

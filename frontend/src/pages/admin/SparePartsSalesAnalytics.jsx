@@ -71,12 +71,12 @@ const SparePartsSalesAnalytics = () => {
         statusRes,
         frequencyRes
       ] = await Promise.all([
-        fetch(`${baseUrl}/api/analytics/spare-parts/sales-trends?period=${selectedPeriod}`, { headers }),
-        fetch(`${baseUrl}/api/analytics/spare-parts/top-selling?limit=10`, { headers }),
-        fetch(`${baseUrl}/api/analytics/spare-parts/revenue-by-category`, { headers }),
-        fetch(`${baseUrl}/api/analytics/spare-parts/monthly-performance`, { headers }),
-        fetch(`${baseUrl}/api/analytics/spare-parts/order-status-distribution`, { headers }),
-        fetch(`${baseUrl}/api/analytics/spare-parts/customer-frequency`, { headers })
+        fetch(`${process.env.REACT_APP_API_URL}/analytics/spare-parts/sales-trends?period=${selectedPeriod}`, { headers }),
+        fetch(`${process.env.REACT_APP_API_URL}/analytics/spare-parts/top-selling?limit=10`, { headers }),
+        fetch(`${process.env.REACT_APP_API_URL}/analytics/spare-parts/revenue-by-category`, { headers }),
+        fetch(`${process.env.REACT_APP_API_URL}/analytics/spare-parts/monthly-performance`, { headers }),
+        fetch(`${process.env.REACT_APP_API_URL}/analytics/spare-parts/order-status-distribution`, { headers }),
+        fetch(`${process.env.REACT_APP_API_URL}/analytics/spare-parts/customer-frequency`, { headers })
       ]);
 
       const [
