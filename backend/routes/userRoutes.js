@@ -1,6 +1,6 @@
 import express from 'express';
 import authMiddleware from '../middleware/auth.js';
-import { registerUser, loginUser, updateProfile, updatePassword, getUserProfile, getAllUsers, getAllUsersDebug, deleteUser, updateUser, searchUsers, getUserById, getDashboardStats } from '../controllers/userController.js';
+import { registerUser, loginUser, updateProfile, updatePassword, getUserProfile, getAllUsers, getAllUsersDebug, deleteUser, updateUser, searchUsers, getUserById, getDashboardStats, blockUser, unblockUser } from '../controllers/userController.js';
 import { getUserRegistrationTrends, getUserDistribution, getGeographicDistribution, getServiceRequestsByType, getMonthlyServiceVolume, getRevenueTrends, getRepairStatusBreakdown, getTechnicianPerformance } from '../controllers/analyticsController.js';
 
 const router = express.Router();
@@ -54,6 +54,10 @@ router.put('/:id', authMiddleware, updateUser);
 
 
 router.delete('/:id', authMiddleware, deleteUser);
+
+// Block/Unblock routes
+router.post('/:userId/block', authMiddleware, blockUser);
+router.post('/:userId/unblock', authMiddleware, unblockUser);
 
 
 

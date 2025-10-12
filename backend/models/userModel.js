@@ -59,6 +59,12 @@ const userSchema = new mongoose.Schema({
     default: 'customer'
   },
 
+  // Blocking status
+  isBlocked: {
+    type: Boolean,
+    default: false
+  },
+
   // Address (separate fields as requested) - for customers and employees
   address: {
     street: {

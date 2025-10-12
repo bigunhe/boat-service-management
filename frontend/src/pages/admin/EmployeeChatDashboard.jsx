@@ -16,6 +16,7 @@ import { io } from 'socket.io-client';
 import { useNavigate } from 'react-router-dom';
 
 const EmployeeChatDashboard = () => {
+  console.log('🚀 EmployeeChatDashboard component loaded');
   const navigate = useNavigate();
   const [socket, setSocket] = useState(null);
   const [chats, setChats] = useState([]);
@@ -28,6 +29,7 @@ const EmployeeChatDashboard = () => {
   const [isLoadingChats, setIsLoadingChats] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [blockedUsers, setBlockedUsers] = useState(new Set());
   const [stats, setStats] = useState({
     totalChats: 0,
     activeChats: 0,
@@ -38,6 +40,91 @@ const EmployeeChatDashboard = () => {
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
   const toast = useToast();
+
+  // Block/Unblock user functions
+  const handleBlockUser = async (userId, userName) => {
+    console.log('🚫 Blocking user:', { userId, userName });
+    try {
+      const token = localStorage.getItem('token');
+      console.log('🔑 Token exists:', !!token);
+      console.log('🌐 API URL:', `${process.env.REACT_APP_API_URL}/api/users/${userId}/block`);
+      
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/users/${userId}/block`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const data = await response.json();
+      console.log('📡 Block response:', { status: response.status, data });
+      
+      if (response.ok && data.success) {
+        console.log('✅ Block successful, updating state');
+        setBlockedUsers(prev => new Set([...prev, userId]));
+        toast({
+          title: 'User Blocked',
+          description: `${userName} has been blocked from chatting`,
+          status: 'success',
+          duration: 3000,
+          isClosable: true,
+        });
+      } else {
+        throw new Error(data.message || 'Failed to block user');
+      }
+    } catch (error) {
+      console.error('❌ Error blocking user:', error);
+      toast({
+        title: 'Failed to block user',
+        description: error.message || 'Please try again',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
+
+  const handleUnblockUser = async (userId, userName) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/users/${userId}/unblock`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const data = await response.json();
+      
+      if (response.ok && data.success) {
+        setBlockedUsers(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(userId);
+          return newSet;
+        });
+        toast({
+          title: 'User Unblocked',
+          description: `${userName} can now chat again`,
+          status: 'success',
+          duration: 3000,
+          isClosable: true,
+        });
+      } else {
+        throw new Error(data.message || 'Failed to unblock user');
+      }
+    } catch (error) {
+      console.error('Error unblocking user:', error);
+      toast({
+        title: 'Failed to unblock user',
+        description: error.message || 'Please try again',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { 
     isOpen: isDeleteOpen, 
@@ -132,6 +219,7 @@ const EmployeeChatDashboard = () => {
 
   // Load chats on component mount
   useEffect(() => {
+    console.log('📋 useEffect triggered - loading chats');
     loadChats();
   }, []);
 
@@ -452,35 +540,63 @@ const EmployeeChatDashboard = () => {
                         color="white"
                       />
                       <VStack align="start" spacing={1} flex={1} minW={0}>
-                        <HStack justify="space-between" w="full">
-                          <Text
-                            fontWeight="bold"
-                            color={textColor}
-                            fontSize="sm"
-                            noOfLines={1}
-                          >
-                            {chat.userName}
-                          </Text>
-                          <HStack spacing={1}>
-                            {chat.unreadCount > 0 && (
-                              <Badge
-                                colorScheme="red"
-                                borderRadius="full"
-                                minW={5}
-                                h={5}
-                                display="flex"
-                                alignItems="center"
-                                justifyContent="center"
-                                fontSize="xs"
+                          <HStack justify="space-between" w="full">
+                            <HStack spacing={2}>
+                              <Text
+                                fontWeight="bold"
+                                color={textColor}
+                                fontSize="sm"
+                                noOfLines={1}
                               >
-                                {chat.unreadCount}
-                              </Badge>
-                            )}
-                            <Text fontSize="xs" color={subTextColor}>
-                              {formatTime(chat.lastMessageAt)}
-                            </Text>
+                                {chat.userName}
+                              </Text>
+                              {blockedUsers.has(chat.userId) && (
+                                <Badge colorScheme="red" size="sm">BLOCKED</Badge>
+                              )}
+                            </HStack>
+                            <HStack spacing={1}>
+                              {chat.unreadCount > 0 && (
+                                <Badge
+                                  colorScheme="red"
+                                  borderRadius="full"
+                                  minW={5}
+                                  h={5}
+                                  display="flex"
+                                  alignItems="center"
+                                  justifyContent="center"
+                                  fontSize="xs"
+                                >
+                                  {chat.unreadCount}
+                                </Badge>
+                              )}
+                              <Text fontSize="xs" color={subTextColor}>
+                                {formatTime(chat.lastMessageAt)}
+                              </Text>
+                              <Button
+                                size="xs"
+                                colorScheme={blockedUsers.has(chat.userId) ? "green" : "red"}
+                                variant="outline"
+                                position="relative"
+                                zIndex={10}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  console.log('🔘 Button clicked!', { 
+                                    userId: chat.userId, 
+                                    userName: chat.userName,
+                                    isBlocked: blockedUsers.has(chat.userId),
+                                    chatObject: chat
+                                  });
+                                  if (blockedUsers.has(chat.userId)) {
+                                    handleUnblockUser(chat.userId, chat.userName);
+                                  } else {
+                                    handleBlockUser(chat.userId, chat.userName);
+                                  }
+                                }}
+                              >
+                                {blockedUsers.has(chat.userId) ? "Unblock" : "Block"}
+                              </Button>
+                            </HStack>
                           </HStack>
-                        </HStack>
                         <HStack justify="space-between" w="full">
                           <Text
                             fontSize="sm"

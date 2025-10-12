@@ -813,4 +813,84 @@ const getDashboardStats = async (req, res) => {
   }
 };
 
-export {registerUser, loginUser, updateProfile, updatePassword, getUserProfile, getAllUsers, getAllUsersDebug, deleteUser, updateUser, searchUsers, getUserById, getDashboardStats}
+// Block user
+const blockUser = async (req, res) => {
+  try {
+    if (req.user.role !== 'employee' && req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Only employees and admins can block users'
+      });
+    }
+
+    const userId = req.params.userId;
+    // Try to find user by email first, then by ID
+    const user = await User.findOne({ email: userId }) || await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    user.isBlocked = true;
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'User blocked successfully',
+      data: { userId: user._id, isBlocked: user.isBlocked }
+    });
+
+  } catch (error) {
+    console.error('Error blocking user:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to block user',
+      error: error.message
+    });
+  }
+};
+
+// Unblock user
+const unblockUser = async (req, res) => {
+  try {
+    if (req.user.role !== 'employee' && req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Only employees and admins can unblock users'
+      });
+    }
+
+    const userId = req.params.userId;
+    // Try to find user by email first, then by ID
+    const user = await User.findOne({ email: userId }) || await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    user.isBlocked = false;
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'User unblocked successfully',
+      data: { userId: user._id, isBlocked: user.isBlocked }
+    });
+
+  } catch (error) {
+    console.error('Error unblocking user:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to unblock user',
+      error: error.message
+    });
+  }
+};
+
+export {registerUser, loginUser, updateProfile, updatePassword, getUserProfile, getAllUsers, getAllUsersDebug, deleteUser, updateUser, searchUsers, getUserById, getDashboardStats, blockUser, unblockUser}

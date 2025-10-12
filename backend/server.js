@@ -163,6 +163,31 @@ io.on('connection', (socket) => {
   // Send message
   socket.on('send-message', async (data) => {
     console.log('📨 Received message:', data);
+    
+    // Check if user is blocked (only for user messages)
+    if (data.sender === 'user') {
+      try {
+        const User = (await import('./models/userModel.js')).default;
+        const Chat = (await import('./models/chat.model.js')).default;
+        
+        // Get chat to find user email
+        const chat = await Chat.findById(data.chatId);
+        if (chat) {
+          const user = await User.findOne({ email: chat.userEmail });
+          
+          if (user && user.isBlocked) {
+            console.log('🚫 Blocked user tried to send message:', chat.userEmail);
+            socket.emit('message-error', { 
+              error: 'You have been blocked from sending messages. Please contact support.' 
+            });
+            return;
+          }
+        }
+      } catch (error) {
+        console.error('Error checking user block status:', error);
+      }
+    }
+    
     // Broadcast to all users in the chat room (including sender)
     io.to(data.chatId).emit('receive-message', data);
     console.log(`💬 Message broadcasted in chat: ${data.chatId}`);

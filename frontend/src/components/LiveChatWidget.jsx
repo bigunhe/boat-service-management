@@ -66,6 +66,7 @@ const LiveChatWidget = () => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [isBotMode, setIsBotMode] = useState(true); // Start with bot mode
   const [isEscalating, setIsEscalating] = useState(false);
+  const [isBlocked, setIsBlocked] = useState(false);
   
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -139,6 +140,18 @@ const LiveChatWidget = () => {
     newSocket.on('admin-status', (data) => {
       console.log('👨‍💼 Admin status update:', data);
       setAdminOnline(data.online);
+    });
+
+    newSocket.on('message-error', (data) => {
+      console.log('🚫 Message error received:', data);
+      setIsBlocked(true);
+      toast({
+        title: 'Blocked',
+        description: data.error || 'You have been blocked from sending messages.',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
     });
 
     return () => {
@@ -660,6 +673,17 @@ const LiveChatWidget = () => {
 
           {/* Message Input */}
           <Box p={4} borderTop="1px solid" borderColor={borderColor}>
+            {isBlocked && (
+              <Alert status="error" mb={3} borderRadius="md">
+                <AlertIcon />
+                <Box>
+                  <AlertTitle>Chat Blocked</AlertTitle>
+                  <AlertDescription fontSize="sm">
+                    You have been blocked from sending messages. Please contact support.
+                  </AlertDescription>
+                </Box>
+              </Alert>
+            )}
             <VStack spacing={3}>
               <HStack spacing={2} w="full">
                 <Input
@@ -668,10 +692,13 @@ const LiveChatWidget = () => {
                     setNewMessage(e.target.value);
                     handleTyping();
                   }}
-                  placeholder="Type your message..."
+                  placeholder={isBlocked ? "You are blocked from chatting" : "Type your message..."}
                   size="sm"
+                  disabled={isBlocked}
+                  opacity={isBlocked ? 0.5 : 1}
+                  cursor={isBlocked ? "not-allowed" : "text"}
                   onKeyPress={(e) => {
-                    if (e.key === 'Enter') {
+                    if (e.key === 'Enter' && !isBlocked) {
                       sendMessage();
                     }
                   }}
@@ -687,6 +714,9 @@ const LiveChatWidget = () => {
                   size="sm"
                   variant="ghost"
                   onClick={() => fileInputRef.current?.click()}
+                  disabled={isBlocked}
+                  opacity={isBlocked ? 0.5 : 1}
+                  cursor={isBlocked ? "not-allowed" : "pointer"}
                 >
                   <Icon as={FaPaperclip} />
                 </Button>
@@ -694,7 +724,9 @@ const LiveChatWidget = () => {
                   size="sm"
                   colorScheme="blue"
                   onClick={sendMessage}
-                  disabled={!newMessage.trim()}
+                  disabled={!newMessage.trim() || isBlocked}
+                  opacity={isBlocked ? 0.5 : 1}
+                  cursor={isBlocked ? "not-allowed" : "pointer"}
                 >
                   <Icon as={FaPaperPlane} />
                 </Button>

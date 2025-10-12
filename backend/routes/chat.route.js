@@ -165,6 +165,30 @@ router.post('/chat/:chatId/message', upload.single('file'), async (req, res) => 
     
     console.log('📨 Saving message:', { chatId, sender, message });
     
+    // Check if user is blocked (only for user messages)
+    if (sender === 'user') {
+      try {
+        const User = (await import('../models/userModel.js')).default;
+        const Chat = (await import('../models/chat.model.js')).default;
+        
+        // Get chat to find user email
+        const chat = await Chat.findById(chatId);
+        if (chat) {
+          const user = await User.findOne({ email: chat.userEmail });
+          
+          if (user && user.isBlocked) {
+            console.log('🚫 Blocked user tried to send message via HTTP:', chat.userEmail);
+            return res.status(403).json({
+              success: false,
+              message: 'You have been blocked from sending messages. Please contact support.'
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Error checking user block status in HTTP:', error);
+      }
+    }
+    
     let fileUrl = null;
     let fileName = null;
     let fileType = null;
