@@ -196,6 +196,20 @@ const boatRepairSchema = new mongoose.Schema({
     amount: Number
   },
 
+  // Final Payment Information (for two-step payment)
+  finalPayment: {
+    status: {
+      type: String,
+      enum: ['pending', 'paid', 'failed', 'refunded'],
+      default: 'pending'
+    },
+    stripePaymentIntentId: String,
+    stripeChargeId: String,
+    paymentMethod: String,
+    paidAt: Date,
+    amount: Number
+  },
+
   // Repair cost (simplified)
   cost: {
     type: Number,

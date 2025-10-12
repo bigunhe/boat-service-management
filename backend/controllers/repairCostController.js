@@ -49,8 +49,9 @@ export const sendInvoice = async (req, res) => {
       });
     }
 
-    // Update repair with final cost (simplified)
-    repair.cost = finalCost;
+    // Update repair with final cost
+    repair.finalCost = finalCost;
+    repair.cost = finalCost; // Keep cost field updated for compatibility
     
     await repair.save();
 
@@ -62,6 +63,10 @@ export const sendInvoice = async (req, res) => {
       message: `Your repair ${repair.bookingId} is complete. Final cost: ${finalCost} LKR`,
       repairId: repair.bookingId
     });
+
+    // Calculate remaining amount (assuming advance payment was already made)
+    const advancePayment = repair.payment?.amount || 0;
+    const remainingAmount = Math.max(0, finalCost - advancePayment);
 
     res.json({
       success: true,
@@ -88,9 +93,12 @@ export const processFinalPayment = async (req, res) => {
     console.log('Payment data:', req.body);
     
     const { repairId } = req.params;
-    const { paymentIntentId, amount } = req.body;
+    const { paymentIntentId, stripePaymentIntentId, amount } = req.body;
+    
+    // Use either paymentIntentId or stripePaymentIntentId
+    const finalPaymentIntentId = stripePaymentIntentId || paymentIntentId;
 
-    const repair = await BoatRepair.findOne({ bookingId: repairId });
+    const repair = await BoatRepair.findOne({ bookingId: repairId }).populate('customer', 'name email');
     
     if (!repair) {
       console.log('Repair not found for bookingId:', repairId);
@@ -113,17 +121,17 @@ export const processFinalPayment = async (req, res) => {
       });
     }
 
-    if (repair.payment?.status === 'paid') {
-      console.log('Payment already completed');
+    if (repair.finalPayment?.status === 'paid') {
+      console.log('Final payment already completed');
       return res.status(400).json({
         success: false,
-        message: 'Payment already completed for this repair'
+        message: 'Final payment already completed for this repair'
       });
     }
 
     // Update existing payment record instead of creating new one
     console.log('Updating payment record...');
-    const existingPayment = await Payment.findOne({ stripePaymentIntentId: paymentIntentId });
+    const existingPayment = await Payment.findOne({ stripePaymentIntentId: finalPaymentIntentId });
     
     if (existingPayment) {
       existingPayment.status = 'succeeded';
@@ -135,9 +143,10 @@ export const processFinalPayment = async (req, res) => {
       console.log('No existing payment found, creating new one...');
       const payment = new Payment({
         paymentId: `PAY-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
-        stripePaymentIntentId: paymentIntentId,
-        customerEmail: 'customer@example.com',
-        customerName: 'Customer Name',
+        stripePaymentIntentId: finalPaymentIntentId,
+        customerId: repair.customer,
+        customerEmail: repair.customer.email || 'customer@example.com',
+        customerName: repair.customer.name || 'Customer Name',
         amount: amount || repair.cost,
         currency: 'lkr',
         amountInCents: (amount || repair.cost) * 100,
@@ -152,11 +161,13 @@ export const processFinalPayment = async (req, res) => {
       console.log('Payment record created:', payment.paymentId);
     }
 
-    // Update repair status
-    console.log('Updating repair status...');
-    repair.payment = {
+    // Update repair final payment status
+    console.log('Updating repair final payment status...');
+    repair.finalPayment = {
       status: 'paid',
-      paidAt: new Date()
+      paidAt: new Date(),
+      amount: amount || repair.cost,
+      stripePaymentIntentId: finalPaymentIntentId
     };
     await repair.save();
     console.log('Repair status updated');

@@ -198,6 +198,7 @@ export const confirmPayment = async (req, res) => {
       success: true,
       data: {
         paymentId: payment.paymentId,
+        stripePaymentIntentId: payment.stripePaymentIntentId,
         status: payment.status,
         amount: payment.amount,
         currency: payment.currency,
@@ -267,6 +268,11 @@ export const getUserPayments = async (req, res) => {
     const filter = { customerEmail: user.email };
     if (status) filter.status = status;
     if (serviceType) filter.serviceType = serviceType;
+    
+    // Default to only succeeded payments if no status filter is provided
+    if (!status) {
+      filter.status = 'succeeded';
+    }
 
     const payments = await Payment.find(filter)
       .sort({ createdAt: -1 })

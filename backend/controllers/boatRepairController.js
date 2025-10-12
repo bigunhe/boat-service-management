@@ -1,5 +1,6 @@
 import BoatRepair from '../models/boatRepairModel.js';
 import User from '../models/userModel.js';
+import Payment from '../models/Payment.js';
 import PDFDocument from 'pdfkit';
 import fs from 'fs';
 import path from 'path';
@@ -28,7 +29,9 @@ export const createBoatRepair = async (req, res, next) => {
       calendlyEventId,
       calendlyEventUri,
       serviceLocation,
-      customerNotes
+      customerNotes,
+      payment,
+      diagnosticFee
     } = req.body;
 
     // Create the repair request
@@ -44,8 +47,41 @@ export const createBoatRepair = async (req, res, next) => {
       calendlyEventUri,
       serviceLocation,
       customerNotes,
-      status: 'pending'
+      status: 'pending',
+      // Add advance payment information
+      payment: payment ? {
+        status: 'paid',
+        amount: payment.amount || diagnosticFee || 0,
+        stripePaymentIntentId: payment.stripePaymentIntentId,
+        paidAt: payment.paidAt || new Date()
+      } : {
+        status: 'pending',
+        amount: 0
+      },
+      cost: diagnosticFee || 0 // Set initial cost to diagnostic fee
     });
+
+    // Payment record is already created in createPaymentIntent, no need to create again
+    // Just update the existing payment record with the repair booking ID
+    if (payment && payment.amount > 0) {
+      console.log('Updating existing Payment record with repair booking ID:', {
+        paymentId: payment.paymentId,
+        bookingId: boatRepair.bookingId,
+        userEmail: req.user.email,
+        userName: req.user.name
+      });
+      
+      // Find and update the existing payment record
+      const existingPayment = await Payment.findOne({ paymentId: payment.paymentId });
+      if (existingPayment) {
+        existingPayment.serviceId = boatRepair.bookingId;
+        existingPayment.serviceDescription = `${serviceType} - Advance Payment (Diagnostic Fee)`;
+        await existingPayment.save();
+        console.log('Payment record updated successfully');
+      } else {
+        console.log('Payment record not found with paymentId:', payment.paymentId);
+      }
+    }
 
     // Populate customer info for response
     const populatedRepair = await BoatRepair.findById(boatRepair._id)
@@ -116,9 +152,32 @@ export const getBoatRepairById = async (req, res, next) => {
     //   throw new Error('Not authorized to view this repair request');
     // }
 
+    // Add repairCosts virtual field for frontend compatibility
+    const repairData = repair.toObject();
+    const advancePayment = repair.payment?.amount || 0;
+    const finalCost = repair.finalCost || repair.cost || 0;
+    const remainingAmount = Math.max(0, finalCost - advancePayment);
+    
+    repairData.repairCosts = {
+      advancePayment,
+      finalCost,
+      remainingAmount,
+      paymentStatus: (() => {
+        if (repair.finalCost && repair.finalCost > 0) {
+          if (repair.finalPayment?.status === 'paid') {
+            return 'fully_paid';
+          }
+          return 'invoice_sent';
+        }
+        return 'advance_paid';
+      })(),
+      invoiceSentAt: repair.finalCost ? new Date() : null,
+      finalPaymentAt: repair.finalPayment?.status === 'paid' ? repair.finalPayment.paidAt : null
+    };
+
     res.status(200).json({
       success: true,
-      data: repair
+      data: repairData
     });
 
   } catch (error) {
@@ -184,10 +243,37 @@ export const getMyBoatRepairs = async (req, res, next) => {
       });
     });
 
+    // Add repairCosts virtual field for frontend compatibility
+    const repairsWithCosts = repairs.map(repair => {
+      const repairData = repair.toObject();
+      const advancePayment = repair.payment?.amount || 0;
+      const finalCost = repair.finalCost || repair.cost || 0;
+      const remainingAmount = Math.max(0, finalCost - advancePayment);
+      
+      repairData.repairCosts = {
+        advancePayment,
+        finalCost,
+        remainingAmount,
+        paymentStatus: (() => {
+          if (repair.finalCost && repair.finalCost > 0) {
+            if (repair.finalPayment?.status === 'paid') {
+              return 'fully_paid';
+            }
+            return 'invoice_sent';
+          }
+          return 'advance_paid';
+        })(),
+        invoiceSentAt: repair.finalCost ? new Date() : null,
+        finalPaymentAt: repair.finalPayment?.status === 'paid' ? repair.finalPayment.paidAt : null
+      };
+      
+      return repairData;
+    });
+
     res.status(200).json({
       success: true,
       count: repairs.length,
-      data: repairs
+      data: repairsWithCosts
     });
 
   } catch (error) {
@@ -823,9 +909,45 @@ export const getAllRepairsForEmployee = async (req, res, next) => {
     // Get total count for pagination
     const total = await BoatRepair.countDocuments(query);
 
+    // Add repairCosts virtual field for frontend compatibility
+    const repairsWithCosts = repairs.map(repair => {
+      // Convert to plain object to avoid Mongoose virtual conflicts
+      const repairData = JSON.parse(JSON.stringify(repair));
+      
+      // Calculate repair costs
+      const advancePayment = repair.payment?.amount || 0;
+      const finalCost = repair.finalCost || repair.cost || 0;
+      const remainingAmount = Math.max(0, finalCost - advancePayment);
+      
+      // Determine payment status
+      let paymentStatus = 'advance_paid';
+      if (repair.finalCost && repair.finalCost > 0) {
+        if (repair.finalPayment?.status === 'paid') {
+          paymentStatus = 'fully_paid';
+        } else {
+          paymentStatus = 'invoice_sent';
+        }
+      }
+      
+      // Create repairCosts object
+      const repairCosts = {
+        advancePayment: Number(advancePayment) || 0,
+        finalCost: Number(finalCost) || 0,
+        remainingAmount: Number(remainingAmount) || 0,
+        paymentStatus: paymentStatus,
+        invoiceSentAt: repair.finalCost ? new Date() : null,
+        finalPaymentAt: repair.finalPayment?.status === 'paid' ? repair.finalPayment.paidAt : null
+      };
+      
+      // Add repairCosts to repairData
+      repairData.repairCosts = repairCosts;
+      
+      return repairData;
+    });
+
     res.status(200).json({
       success: true,
-      data: repairs,
+      data: repairsWithCosts,
       pagination: {
         current: parseInt(page),
         pages: Math.ceil(total / parseInt(limit)),
@@ -1064,6 +1186,97 @@ export const updateRepairStatus = async (req, res, next) => {
     });
 
   } catch (error) {
+    next(error);
+  }
+};
+
+// Migration function to fix existing repairs without advance payments
+export const migrateRepairPayments = async (req, res, next) => {
+  try {
+    // Only allow admin to run migration
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Admin access required'
+      });
+    }
+
+    // Find repairs that have no advance payment (regardless of finalCost)
+    const repairsToFix = await BoatRepair.find({
+      $or: [
+        { 'payment.amount': { $exists: false } },
+        { 'payment.amount': 0 },
+        { 'payment.amount': null }
+      ]
+    }).populate('customer');
+
+    console.log(`Found ${repairsToFix.length} repairs to migrate`);
+
+    let migratedCount = 0;
+    
+    // Diagnostic fees based on service type
+    const diagnosticFees = {
+      'engine_repair': 2500,
+      'hull_repair': 3000,
+      'electrical': 2000,
+      'maintenance': 1500,
+      'emergency': 5000,
+      'other': 2000
+    };
+
+    for (const repair of repairsToFix) {
+      try {
+        const diagnosticFee = diagnosticFees[repair.serviceType] || diagnosticFees['other'];
+        
+        // Set advance payment (diagnostic fee)
+        repair.payment = {
+          status: 'paid',
+          amount: diagnosticFee,
+          paidAt: repair.createdAt, // Use creation date as payment date
+          paymentMethod: 'card'
+        };
+
+        // Update cost to include diagnostic fee
+        repair.cost = diagnosticFee;
+
+        await repair.save();
+
+        // Create Payment record for advance payment
+        const advancePayment = new Payment({
+          paymentId: `PAY-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
+          stripePaymentIntentId: `migrated-${repair._id}`,
+          customerId: repair.customer._id,
+          customerEmail: repair.customer.email,
+          customerName: repair.customer.name,
+          amount: diagnosticFee,
+          currency: 'lkr',
+          amountInCents: diagnosticFee * 100,
+          status: 'succeeded',
+          serviceType: 'boat_repair',
+          serviceId: repair.bookingId,
+          serviceDescription: `${repair.serviceType} - Advance Payment (Diagnostic Fee) - Migrated`,
+          paidAt: repair.createdAt,
+          paymentMethod: 'card'
+        });
+
+        await advancePayment.save();
+        migratedCount++;
+
+        console.log(`Migrated repair ${repair.bookingId} - Advance: ${diagnosticFee} LKR`);
+      } catch (error) {
+        console.error(`Error migrating repair ${repair.bookingId}:`, error);
+      }
+    }
+
+    res.json({
+      success: true,
+      message: `Migration completed. ${migratedCount} repairs migrated.`,
+      migratedCount,
+      totalFound: repairsToFix.length
+    });
+
+  } catch (error) {
+    console.error('Migration error:', error);
     next(error);
   }
 };

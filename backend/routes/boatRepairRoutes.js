@@ -16,7 +16,8 @@ import {
   getTechnicians,
   assignTechnician,
   markBoatReceived,
-  updateRepairStatus
+  updateRepairStatus,
+  migrateRepairPayments
 } from '../controllers/boatRepairController.js';
 import authMiddleware from '../middleware/auth.js';
 
@@ -81,5 +82,9 @@ router.route('/:id/mark-received')
 
 router.route('/:id/update-status')
   .put(authMiddleware, updateRepairStatus); // Update repair status
+
+// Migration route (admin only)
+router.route('/migrate-payments')
+  .post(migrateRepairPayments); // Migrate existing repairs
 
 export default router;

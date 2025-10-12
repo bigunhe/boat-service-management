@@ -193,9 +193,12 @@ const PaymentSummary = () => {
 
       setPayments(allPayments);
 
-      // Calculate summary
-      const totalSpent = allPayments.reduce((sum, payment) => sum + payment.amount, 0);
-      const totalPayments = allPayments.length;
+      // Calculate summary - only count completed/succeeded payments
+      const completedPayments = allPayments.filter(payment => 
+        payment.status === 'completed' || payment.status === 'succeeded' || payment.status === 'confirmed'
+      );
+      const totalSpent = completedPayments.reduce((sum, payment) => sum + payment.amount, 0);
+      const totalPayments = completedPayments.length;
       const boatRides = boatRidePayments.length;
       const spareParts = sparePartPayments.length;
       const repairs = repairPayments.length;

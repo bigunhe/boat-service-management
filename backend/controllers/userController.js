@@ -135,7 +135,7 @@ const registerUser = async(req,res)=>{
     console.log('User created successfully:', newUser.email, 'Role:', newUser.role);
     
     const token = jwt.sign(
-      {id: newUser._id, role: newUser.role},
+      {id: newUser._id, role: newUser.role, email: newUser.email, name: newUser.name},
       process.env.JWT_SECRET,
       {expiresIn: process.env.JWT_EXPIRES_IN}
     );
@@ -276,7 +276,7 @@ console.log('email: ', email);
   // generate JWT token
 
   const token = jwt.sign(
-    {id: user._id, role: user.role },
+    {id: user._id, role: user.role, email: user.email, name: user.name },
     process.env.JWT_SECRET,
     {expiresIn: process.env.JWT_EXPIRES_IN}
   );
