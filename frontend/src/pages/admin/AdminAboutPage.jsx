@@ -170,7 +170,7 @@ const AdminAboutPage = () => {
   const saveCompanyInfo = async () => {
     try {
       setSaving(true);
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/about/company-info`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/about/company-info`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -206,7 +206,7 @@ const AdminAboutPage = () => {
   const saveStatistics = async () => {
     try {
       setSaving(true);
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/about/statistics`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/about/statistics`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -397,7 +397,7 @@ const AdminAboutPage = () => {
   const saveCallToAction = async () => {
     try {
       setSaving(true);
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/about/call-to-action`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/about/call-to-action`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -433,7 +433,7 @@ const AdminAboutPage = () => {
   const saveSettings = async () => {
     try {
       setSaving(true);
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/about/settings`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/about/settings`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -495,7 +495,9 @@ const AdminAboutPage = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ 
-          [editingType]: editingItem 
+          teamMember: editingType === 'team' ? editingItem : undefined,
+          testimonial: editingType === 'testimonial' ? editingItem : undefined,
+          achievement: editingType === 'achievement' ? editingItem : undefined
         }),
       });
 
@@ -1078,6 +1080,14 @@ const AdminAboutPage = () => {
                       onChange={(e) => setEditingItem({...editingItem, bio: e.target.value})}
                       placeholder="Team member bio..."
                       rows={3}
+                    />
+                  </FormControl>
+                  <FormControl>
+                    <FormLabel>Specialties (comma-separated)</FormLabel>
+                    <Input
+                      value={editingItem?.specialties?.join(', ') || ''}
+                      onChange={(e) => setEditingItem({...editingItem, specialties: e.target.value.split(',').map(s => s.trim()).filter(s => s)})}
+                      placeholder="Engine Repair, Electrical Systems, Hull Maintenance"
                     />
                   </FormControl>
                 </VStack>

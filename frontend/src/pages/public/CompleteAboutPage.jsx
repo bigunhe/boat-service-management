@@ -57,8 +57,13 @@ const CompleteAboutPage = () => {
     const fetchAboutData = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`${process.env.REACT_APP_API_URL}/about`);
+        const baseUrl = process.env.REACT_APP_API_URL || 'http://localhost:5001/api';
+        const apiUrl = baseUrl.endsWith('/api') ? `${baseUrl}/about` : `${baseUrl}/api/about`;
+        console.log('Fetching from:', apiUrl);
+        const response = await fetch(apiUrl);
+        console.log('Response status:', response.status);
         const result = await response.json();
+        console.log('API result:', result);
         
         if (result.success) {
           setAboutData(result.data);
